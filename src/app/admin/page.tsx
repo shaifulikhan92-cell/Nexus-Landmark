@@ -1,17 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Building2, CheckCircle2, ChevronRight, CircleUserRound, ClipboardList, LayoutDashboard, LogOut, Menu, Plus, Search, Settings, X } from "lucide-react";
+import { Building2, CheckCircle2, ChevronRight, CircleUserRound, ClipboardList, FilePenLine, LayoutDashboard, LogOut, Menu, Plus, Search, Settings, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 type Project = { id: string; title: string; location: string; status: string; property_type: string; size: string; price: string };
 type Inquiry = { id: string; name: string; email: string; message: string; status: string; created_at: string };
+type Content = { hero_eyebrow: string; hero_description: string; about_description: string; phone: string; email: string; address: string };
+const defaultContent: Content = { hero_eyebrow: "Better thinking. Better addresses.", hero_description: "We create future-ready homes and commercial spaces in the places that matter—designed for the life you have now and the one you are building next.", about_description: "We bring planning, architecture, and customer care into one clear ownership journey. From site selection to handover, every decision is made to create calm, lasting value.", phone: "+880 1611 741 100", email: "hello@nexuslandmark.com", address: "Dhaka, Bangladesh" };
 
 const demoProjects: Project[] = [
   { id: "demo-1", title: "Nexus Parkview", location: "Gulshan, Dhaka", status: "Ongoing", property_type: "Residential", size: "1,850–2,450 sft", price: "On request" },
   { id: "demo-2", title: "Landmark One", location: "Banani, Dhaka", status: "Upcoming", property_type: "Commercial", size: "1,200–8,000 sft", price: "On request" },
 ];
+
+function ContentEditor({ content, setContent, saveContent, saved }: { content: Content; setContent: (content: Content) => void; saveContent: () => void; saved: boolean }) { const field = (key: keyof Content, label: string, area = false) => <label className="grid gap-2 text-xs font-bold text-[#314b5e]">{label}{area ? <textarea rows={4} value={content[key]} onChange={(event) => setContent({ ...content, [key]: event.target.value })} className="rounded-md border border-[#0c2d49]/10 bg-[#f5f7f9] p-3 text-sm font-normal outline-none focus:border-[#c99554]" /> : <input value={content[key]} onChange={(event) => setContent({ ...content, [key]: event.target.value })} className="rounded-md border border-[#0c2d49]/10 bg-[#f5f7f9] p-3 text-sm font-normal outline-none focus:border-[#c99554]" />}</label>; return <main className="min-h-screen bg-[#f5f7f9] p-6 text-[#092945] lg:p-10"><div className="mx-auto max-w-4xl rounded-lg border border-[#0c2d49]/10 bg-white p-6"><p className="text-xs font-bold uppercase tracking-widest text-[#bc8140]">Homepage CMS</p><h2 className="mt-1 font-serif text-3xl">Edit website information</h2><p className="mt-2 text-sm leading-6 text-[#557084]">Update these fields and save them to publish the information used by Nexus Landmark.</p><div className="mt-8 grid gap-5 md:grid-cols-2">{field("hero_eyebrow", "Hero label")}{field("phone", "Phone number")}{field("hero_description", "Hero description", true)}{field("about_description", "About description", true)}{field("email", "Email address")}{field("address", "Office address")}</div><button onClick={saveContent} className="mt-7 rounded-md bg-[#092945] px-5 py-3 text-sm font-bold text-white">{saved ? "Saved successfully" : "Save website information"}</button></div></main>; }
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -21,18 +25,22 @@ export default function AdminDashboard() {
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [newTitle, setNewTitle] = useState("");
+  const [content, setContent] = useState<Content>(defaultContent);
+  const [contentSaved, setContentSaved] = useState(false);
 
   useEffect(() => {
     async function load() {
       if (!supabase) return;
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) { router.replace("/admin/login"); return; }
-      const [{ data: projectData }, { data: inquiryData }] = await Promise.all([
+      const [{ data: projectData }, { data: inquiryData }, { data: contentData }] = await Promise.all([
         supabase.from("properties").select("id,title,location,status,property_type,size,price").order("created_at", { ascending: false }),
         supabase.from("inquiries").select("id,name,email,message,status,created_at").order("created_at", { ascending: false }),
+        supabase.from("site_content").select("content").eq("id", "homepage").maybeSingle(),
       ]);
       if (projectData) setProjects(projectData);
       if (inquiryData) setInquiries(inquiryData);
+      if (contentData?.content) setContent({ ...defaultContent, ...contentData.content });
     }
     load();
   }, [router]);
@@ -48,7 +56,13 @@ export default function AdminDashboard() {
     setNewTitle(""); setShowForm(false);
   }
 
-  const nav = [{ name: "Overview", icon: LayoutDashboard }, { name: "Properties", icon: Building2 }, { name: "Inquiries", icon: ClipboardList }];
+  async function saveContent() {
+    if (supabase) await supabase.from("site_content").upsert({ id: "homepage", content, updated_at: new Date().toISOString() });
+    setContentSaved(true); setTimeout(() => setContentSaved(false), 2500);
+  }
+
+  const nav = [{ name: "Overview", icon: LayoutDashboard }, { name: "Content", icon: FilePenLine }, { name: "Properties", icon: Building2 }, { name: "Inquiries", icon: ClipboardList }];
+  if (section === "Content") return <ContentEditor content={content} setContent={setContent} saveContent={saveContent} saved={contentSaved} />;
   return <main className="min-h-screen bg-[#f5f7f9] text-[#092945]"><aside className={`fixed inset-y-0 left-0 z-30 w-64 bg-[#092945] p-6 text-white transition-transform lg:translate-x-0 ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}><div className="flex items-center justify-between"><div className="flex items-center gap-2"><span className="grid h-9 w-9 place-items-center rounded bg-[#c99554] text-[#092945]"><Building2 size={18} /></span><span className="font-serif text-lg">Nexus <span className="text-[#d7a263]">Landmark</span></span></div><button className="lg:hidden" onClick={() => setMenuOpen(false)}><X size={18} /></button></div><p className="mb-5 mt-12 text-[10px] font-bold uppercase tracking-[.2em] text-white/40">Workspace</p><div className="grid gap-2">{nav.map(({ name, icon: Icon }) => <button key={name} onClick={() => { setSection(name); setMenuOpen(false); }} className={`flex items-center gap-3 rounded-md px-3 py-3 text-left text-sm font-semibold transition ${section === name ? "bg-white/10 text-[#d7a263]" : "text-white/65 hover:bg-white/5 hover:text-white"}`}><Icon size={17} />{name}</button>)}</div><div className="absolute bottom-6 left-6 right-6 grid gap-2 border-t border-white/10 pt-5"><button className="flex items-center gap-3 px-3 py-2 text-left text-sm text-white/60"><Settings size={17} /> Settings</button><button onClick={signOut} className="flex items-center gap-3 px-3 py-2 text-left text-sm text-white/60 hover:text-white"><LogOut size={17} /> Sign out</button></div></aside><div className="lg:pl-64"><header className="flex h-[76px] items-center justify-between border-b border-[#0c2d49]/10 bg-white px-6 lg:px-10"><button className="lg:hidden" onClick={() => setMenuOpen(true)}><Menu /></button><div className="hidden lg:block"><p className="text-xs font-bold uppercase tracking-[.18em] text-[#bc8140]">Admin workspace</p><h1 className="mt-1 font-serif text-xl">{section}</h1></div><div className="flex items-center gap-4"><button className="hidden text-[#557084] sm:block"><Search size={18} /></button><div className="flex items-center gap-2 border-l border-[#0c2d49]/10 pl-4"><CircleUserRound size={22} className="text-[#bc8140]" /><span className="hidden text-xs font-bold sm:block">Administrator</span></div></div></header><div className="p-6 lg:p-10"><div className="mb-8 lg:hidden"><p className="text-xs font-bold uppercase tracking-[.18em] text-[#bc8140]">Admin workspace</p><h1 className="mt-1 font-serif text-3xl">{section}</h1></div>{section === "Overview" && <Overview projects={projects} inquiries={inquiries} onProjects={() => setSection("Properties")} onInquiries={() => setSection("Inquiries")} />}{section === "Properties" && <Properties projects={projects} showForm={showForm} setShowForm={setShowForm} newTitle={newTitle} setNewTitle={setNewTitle} addProject={addDemoProject} />}{section === "Inquiries" && <Inquiries inquiries={inquiries} />}</div></div></main>;
 }
 
