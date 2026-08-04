@@ -30,7 +30,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     async function load() {
-      if (!supabase) return;
+      if (!supabase) { router.replace("/admin/login"); return; }
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) { router.replace("/admin/login"); return; }
       const [{ data: projectData }, { data: inquiryData }, { data: contentData }] = await Promise.all([
