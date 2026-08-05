@@ -39,6 +39,34 @@ create table if not exists public.site_content (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.gallery_items (
+  id uuid primary key default gen_random_uuid(),
+  label text not null,
+  title text not null,
+  image_url text not null,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.testimonials (
+  id uuid primary key default gen_random_uuid(),
+  quote text not null,
+  customer_name text not null,
+  customer_role text,
+  published boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.services (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  description text not null,
+  icon text,
+  sort_order integer not null default 0,
+  published boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
 create or replace function public.is_admin()
 returns boolean language sql security definer set search_path = public
 as $$ select exists (select 1 from public.profiles where id = auth.uid() and role = 'admin'); $$;
@@ -47,12 +75,30 @@ alter table public.profiles enable row level security;
 alter table public.properties enable row level security;
 alter table public.inquiries enable row level security;
 alter table public.site_content enable row level security;
+alter table public.gallery_items enable row level security;
+alter table public.testimonials enable row level security;
+alter table public.services enable row level security;
 
 drop policy if exists "Public can read site content" on public.site_content;
 create policy "Public can read site content" on public.site_content for select using (true);
 
 drop policy if exists "Admins manage site content" on public.site_content;
 create policy "Admins manage site content" on public.site_content for all using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "Public can read gallery" on public.gallery_items;
+create policy "Public can read gallery" on public.gallery_items for select using (true);
+drop policy if exists "Admins manage gallery" on public.gallery_items;
+create policy "Admins manage gallery" on public.gallery_items for all using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "Public can read testimonials" on public.testimonials;
+create policy "Public can read testimonials" on public.testimonials for select using (published = true);
+drop policy if exists "Admins manage testimonials" on public.testimonials;
+create policy "Admins manage testimonials" on public.testimonials for all using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "Public can read services" on public.services;
+create policy "Public can read services" on public.services for select using (published = true);
+drop policy if exists "Admins manage services" on public.services;
+create policy "Admins manage services" on public.services for all using (public.is_admin()) with check (public.is_admin());
 
 drop policy if exists "Public can view properties" on public.properties;
 create policy "Public can view properties" on public.properties for select using (true);
@@ -78,3 +124,19 @@ on conflict do nothing;
 insert into public.site_content (id, content)
 values ('homepage', '{"hero_eyebrow":"Better thinking. Better addresses.","hero_description":"We create future-ready homes and commercial spaces in the places that matter—designed for the life you have now and the one you are building next.","about_description":"We bring planning, architecture, and customer care into one clear ownership journey. From site selection to handover, every decision is made to create calm, lasting value.","phone":"+880 1611 741 100","email":"hello@nexuslandmark.com","address":"Dhaka, Bangladesh"}'::jsonb)
 on conflict (id) do nothing;
+
+insert into storage.buckets (id, name, public)
+values ('site-assets', 'site-assets', true)
+on conflict (id) do update set public = true;
+
+drop policy if exists "Public can view site assets" on storage.objects;
+create policy "Public can view site assets" on storage.objects for select using (bucket_id = 'site-assets');
+
+drop policy if exists "Admins upload site assets" on storage.objects;
+create policy "Admins upload site assets" on storage.objects for insert with check (bucket_id = 'site-assets' and public.is_admin());
+
+drop policy if exists "Admins update site assets" on storage.objects;
+create policy "Admins update site assets" on storage.objects for update using (bucket_id = 'site-assets' and public.is_admin());
+
+drop policy if exists "Admins delete site assets" on storage.objects;
+create policy "Admins delete site assets" on storage.objects for delete using (bucket_id = 'site-assets' and public.is_admin());

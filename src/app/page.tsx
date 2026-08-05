@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   Building2,
@@ -15,14 +15,15 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
-const projects = [
+const defaultProjects = [
   { title: "Nexus Parkview", place: "Gulshan, Dhaka", kind: "Residential", status: "Ongoing", size: "1,850–2,450 sft", image: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=85", text: "A calm, contemporary family residence shaped around light, space, and everyday ease." },
   { title: "Landmark One", place: "Banani, Dhaka", kind: "Commercial", status: "Upcoming", size: "1,200–8,000 sft", image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=85", text: "A confident commercial address for ambitious businesses, retail, and lifestyle brands." },
   { title: "The Grove Residences", place: "Uttara, Dhaka", kind: "Residential", status: "Completed", size: "1,450–1,900 sft", image: "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1200&q=85", text: "Thoughtful apartments with green views, practical planning, and a warm sense of home." },
 ];
 
-const gallery = [
+const defaultGallery = [
   ["Exterior", "Architectural expression", "https://images.unsplash.com/photo-1600607688969-a5bfcd646154?auto=format&fit=crop&w=1000&q=85"],
   ["Interior", "Living, refined", "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1000&q=85"],
   ["Progress", "Built with care", "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1000&q=85"],
@@ -31,6 +32,9 @@ const gallery = [
 export default function HomePage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [filter, setFilter] = useState("All projects");
+  const [projects, setProjects] = useState(defaultProjects);
+  const [gallery, setGallery] = useState(defaultGallery);
+  useEffect(() => { if (!supabase) return; Promise.all([supabase.from("properties").select("title,location,description,property_type,status,size,image_url").order("created_at", { ascending: false }), supabase.from("gallery_items").select("label,title,image_url").order("sort_order")]).then(([projectResult, galleryResult]) => { if (projectResult.data?.length) setProjects(projectResult.data.map((p) => ({ title: p.title, place: p.location, kind: p.property_type, status: p.status, size: p.size || "To be announced", image: p.image_url || defaultProjects[0].image, text: p.description || "A thoughtfully planned Nexus Landmark address." }))); if (galleryResult.data?.length) setGallery(galleryResult.data.map((g) => [g.label, g.title, g.image_url])); }); }, []);
   const visibleProjects = filter === "All projects" ? projects : projects.filter((project) => project.status === filter);
 
   const go = (id: string) => {
