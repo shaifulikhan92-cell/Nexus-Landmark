@@ -324,10 +324,10 @@ export default function HomePage() {
             <img
               src={content.logo_url || "/logo.png"}
               alt={content.brand_name}
-              className="h-11 w-auto max-w-[170px] object-contain"
+              className="h-12 w-auto max-w-[60px] object-contain"
             />
-            <span className="hidden sm:block">
-              <span className="block font-serif text-[18px] font-semibold leading-none text-[#092945]">
+            <span className="block">
+              <span className="block font-serif text-[19px] font-semibold leading-none text-[#092945]">
                 {content.brand_name.split(" ")[0]} <span className="text-[#bc8140]">{content.brand_name.split(" ").slice(1).join(" ") || "Landmark"}</span>
               </span>
               <span className="mt-1 block text-[9px] font-bold uppercase tracking-[.22em] text-[#557084]">
@@ -695,7 +695,7 @@ export default function HomePage() {
               <img
                 src={content.logo_url || "/logo.png"}
                 alt={content.brand_name}
-                className="h-12 w-auto max-w-[180px] object-contain"
+                className="h-12 w-auto max-w-[50px] object-contain"
               />
               <span className="font-serif text-xl font-semibold text-[#092945]">
                 {content.brand_name.split(" ")[0]} <span className="text-[#bc8140]">{content.brand_name.split(" ").slice(1).join(" ") || "Landmark"}</span>
