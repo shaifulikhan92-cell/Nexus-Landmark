@@ -144,6 +144,7 @@ insert into public.site_content (id, content)
 values ('homepage', '{
   "brand_name": "Nexus Landmark",
   "brand_subtitle": "Properties & Development",
+  "logo_url": "/logo.png",
   "top_bar_text": "NEXUS LANDMARK — CREATING ADDRESSES WITH PURPOSE",
   "hero_eyebrow": "Better thinking. Better addresses.",
   "hero_title": "Spaces that",

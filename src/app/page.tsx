@@ -62,6 +62,7 @@ export type ServiceStory = {
 export type SiteContent = {
   brand_name: string;
   brand_subtitle: string;
+  logo_url?: string;
   top_bar_text: string;
   hero_eyebrow: string;
   hero_title: string;
@@ -104,6 +105,7 @@ export type SiteContent = {
 const defaultSiteContent: SiteContent = {
   brand_name: "Nexus Landmark",
   brand_subtitle: "Properties & Development",
+  logo_url: "/logo.png",
   top_bar_text: "NEXUS LANDMARK — CREATING ADDRESSES WITH PURPOSE",
   hero_eyebrow: "Better thinking. Better addresses.",
   hero_title: "Spaces that",
@@ -319,11 +321,13 @@ export default function HomePage() {
       <header className="sticky top-0 z-50 border-b border-[#0c2d49]/10 bg-white/95 shadow-[0_10px_35px_rgba(8,36,61,.08)] backdrop-blur-xl">
         <div className="mx-auto flex min-h-[76px] max-w-7xl items-center justify-between gap-5 px-6 lg:px-10">
           <button onClick={() => go("top")} className="flex items-center gap-3 text-left">
-            <span className="grid h-11 w-11 place-items-center rounded-lg bg-[#092945] text-[#c99554] shadow-lg">
-              <Building2 size={22} />
-            </span>
-            <span>
-              <span className="block font-serif text-[19px] font-semibold leading-none text-[#092945]">
+            <img
+              src={content.logo_url || "/logo.png"}
+              alt={content.brand_name}
+              className="h-11 w-auto max-w-[170px] object-contain"
+            />
+            <span className="hidden sm:block">
+              <span className="block font-serif text-[18px] font-semibold leading-none text-[#092945]">
                 {content.brand_name.split(" ")[0]} <span className="text-[#bc8140]">{content.brand_name.split(" ").slice(1).join(" ") || "Landmark"}</span>
               </span>
               <span className="mt-1 block text-[9px] font-bold uppercase tracking-[.22em] text-[#557084]">
@@ -688,9 +692,11 @@ export default function HomePage() {
         <div className="mx-auto grid max-w-7xl gap-10 px-6 py-12 lg:grid-cols-[1.4fr_1fr_1fr] lg:px-10">
           <div>
             <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded bg-[#092945] text-[#c99554]">
-                <Building2 size={19} />
-              </span>
+              <img
+                src={content.logo_url || "/logo.png"}
+                alt={content.brand_name}
+                className="h-12 w-auto max-w-[180px] object-contain"
+              />
               <span className="font-serif text-xl font-semibold text-[#092945]">
                 {content.brand_name.split(" ")[0]} <span className="text-[#bc8140]">{content.brand_name.split(" ").slice(1).join(" ") || "Landmark"}</span>
               </span>

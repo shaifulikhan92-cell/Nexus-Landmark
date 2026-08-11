@@ -79,6 +79,7 @@ export type SiteContent = Record<string, string>;
 const defaultContent: SiteContent = {
   brand_name: "Nexus Landmark",
   brand_subtitle: "Properties & Development",
+  logo_url: "/logo.png",
   top_bar_text: "NEXUS LANDMARK — CREATING ADDRESSES WITH PURPOSE",
   hero_eyebrow: "Better thinking. Better addresses.",
   hero_title: "Spaces that",
@@ -468,6 +469,35 @@ export default function CmsPage() {
             <div className="grid gap-8">
               {/* Brand & Header Section */}
               <SectionGroup title="1. Brand & Header Info">
+                <div className="md:col-span-2 flex flex-col sm:flex-row items-start sm:items-center gap-6 rounded-lg border border-amber-200/60 bg-amber-50/40 p-4 mb-2">
+                  <div className="grid h-16 w-36 place-items-center rounded bg-white p-2 border border-gray-200 shadow-sm">
+                    <img
+                      src={content.logo_url || "/logo.png"}
+                      alt="Brand Logo"
+                      className="max-h-12 w-auto object-contain"
+                    />
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#092945]">Primary Brand Logo</h4>
+                    <p className="text-xs text-[#557084]">Upload a high-resolution logo asset to display across the site header navbar and footer.</p>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <label className="flex cursor-pointer items-center gap-2 rounded-md bg-[#092945] px-3.5 py-2 text-xs font-bold text-white transition hover:bg-[#bc8140]">
+                        <Upload size={14} /> Upload New Logo
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileUpload(file, (url) => setContent({ ...content, logo_url: url }));
+                          }}
+                        />
+                      </label>
+                      <span className="text-xs text-gray-400">or enter image URL below</span>
+                    </div>
+                  </div>
+                </div>
+                <Input text="Logo Image Path / URL" value={content.logo_url || "/logo.png"} onChange={(v) => setContent({ ...content, logo_url: v })} />
                 <Input text="Brand Name" value={content.brand_name || ""} onChange={(v) => setContent({ ...content, brand_name: v })} />
                 <Input text="Brand Subtitle" value={content.brand_subtitle || ""} onChange={(v) => setContent({ ...content, brand_subtitle: v })} />
                 <Input text="Top Announcement Bar" value={content.top_bar_text || ""} onChange={(v) => setContent({ ...content, top_bar_text: v })} />

@@ -470,10 +470,8 @@ export default function AdminDashboard() {
       {/* Sidebar matching user screenshot */}
       <aside className={`fixed inset-y-0 left-0 z-30 w-64 bg-[#092945] p-6 text-white transition-transform lg:translate-x-0 ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="grid h-9 w-9 place-items-center rounded bg-[#c99554] text-[#092945]">
-              <Building2 size={18} />
-            </span>
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="Nexus Landmark" className="h-10 w-auto object-contain rounded bg-white/10 p-1" />
             <span className="font-serif text-lg">Nexus <span className="text-[#d7a263]">Landmark</span></span>
           </div>
           <button className="lg:hidden" onClick={() => setMenuOpen(false)}><X size={18} /></button>
