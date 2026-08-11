@@ -223,10 +223,21 @@ export default function CmsPage() {
 
   // --- Content Save ---
   async function saveSiteContent() {
-    if (supabase) {
-      await supabase.from("site_content").upsert({ id: "homepage", content, updated_at: new Date().toISOString() });
+    try {
+      localStorage.setItem("nexus_site_content", JSON.stringify(content));
+      window.dispatchEvent(new Event("nexus_content_updated"));
+    } catch (e) {
+      console.error(e);
     }
-    notify("A-Z Website Content Saved!");
+    if (supabase) {
+      const { error } = await supabase.from("site_content").upsert({ id: "homepage", content, updated_at: new Date().toISOString() });
+      if (error) {
+        console.error("Supabase update error:", error);
+        notify("Saved locally! (Supabase notice: " + error.message + ")");
+        return;
+      }
+    }
+    notify("A-Z Website Content Saved Successfully!");
   }
 
   // --- Property CRUD ---

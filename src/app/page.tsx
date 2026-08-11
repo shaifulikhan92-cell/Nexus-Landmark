@@ -223,47 +223,59 @@ export default function HomePage() {
 
   useEffect(() => {
     // 1. Try reading locally saved CMS edits first for instant real-time sync
-    try {
-      const cachedContent = localStorage.getItem("nexus_site_content");
-      if (cachedContent) setContent((prev) => ({ ...prev, ...JSON.parse(cachedContent) }));
-      const cachedProps = localStorage.getItem("nexus_properties");
-      if (cachedProps) setProperties(JSON.parse(cachedProps));
-      const cachedGallery = localStorage.getItem("nexus_gallery");
-      if (cachedGallery) setGallery(JSON.parse(cachedGallery));
-      const cachedTestimonials = localStorage.getItem("nexus_testimonials");
-      if (cachedTestimonials) setTestimonials(JSON.parse(cachedTestimonials));
-      const cachedServices = localStorage.getItem("nexus_services");
-      if (cachedServices) setServices(JSON.parse(cachedServices));
-    } catch (e) {
-      console.error(e);
-    }
+    const loadContent = () => {
+      try {
+        const cachedContent = localStorage.getItem("nexus_site_content");
+        if (cachedContent) setContent((prev) => ({ ...prev, ...JSON.parse(cachedContent) }));
+        const cachedProps = localStorage.getItem("nexus_properties");
+        if (cachedProps) setProperties(JSON.parse(cachedProps));
+        const cachedGallery = localStorage.getItem("nexus_gallery");
+        if (cachedGallery) setGallery(JSON.parse(cachedGallery));
+        const cachedTestimonials = localStorage.getItem("nexus_testimonials");
+        if (cachedTestimonials) setTestimonials(JSON.parse(cachedTestimonials));
+        const cachedServices = localStorage.getItem("nexus_services");
+        if (cachedServices) setServices(JSON.parse(cachedServices));
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    loadContent();
+    window.addEventListener("nexus_content_updated", loadContent);
+    window.addEventListener("storage", loadContent);
 
     // 2. Sync from Supabase database
-    if (!supabase) return;
-    Promise.all([
-      supabase.from("site_content").select("content").eq("id", "homepage").maybeSingle(),
-      supabase.from("properties").select("*").order("created_at", { ascending: false }),
-      supabase.from("gallery_items").select("*").order("sort_order"),
-      supabase.from("testimonials").select("*").eq("published", true).order("created_at", { ascending: false }),
-      supabase.from("services").select("*").eq("published", true).order("sort_order")
-    ]).then(([contentRes, propRes, galleryRes, testRes, servRes]) => {
-      const siteContentData = contentRes.data?.content as Partial<SiteContent> | undefined;
-      if (siteContentData) {
-        setContent((prev) => ({ ...prev, ...siteContentData }));
-      }
-      if (propRes.data?.length) {
-        setProperties(propRes.data);
-      }
-      if (galleryRes.data?.length) {
-        setGallery(galleryRes.data);
-      }
-      if (testRes.data?.length) {
-        setTestimonials(testRes.data);
-      }
-      if (servRes.data?.length) {
-        setServices(servRes.data);
-      }
-    }).catch(console.error);
+    if (supabase) {
+      Promise.all([
+        supabase.from("site_content").select("content").eq("id", "homepage").maybeSingle(),
+        supabase.from("properties").select("*").order("created_at", { ascending: false }),
+        supabase.from("gallery_items").select("*").order("sort_order"),
+        supabase.from("testimonials").select("*").eq("published", true).order("created_at", { ascending: false }),
+        supabase.from("services").select("*").eq("published", true).order("sort_order")
+      ]).then(([contentRes, propRes, galleryRes, testRes, servRes]) => {
+        const siteContentData = contentRes.data?.content as Partial<SiteContent> | undefined;
+        if (siteContentData) {
+          setContent((prev) => ({ ...prev, ...siteContentData }));
+        }
+        if (propRes.data?.length) {
+          setProperties(propRes.data);
+        }
+        if (galleryRes.data?.length) {
+          setGallery(galleryRes.data);
+        }
+        if (testRes.data?.length) {
+          setTestimonials(testRes.data);
+        }
+        if (servRes.data?.length) {
+          setServices(servRes.data);
+        }
+      }).catch(console.error);
+    }
+
+    return () => {
+      window.removeEventListener("nexus_content_updated", loadContent);
+      window.removeEventListener("storage", loadContent);
+    };
   }, []);
 
   const visibleProperties = filter === "All projects"
