@@ -24,7 +24,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
-type Tab = "content" | "properties" | "gallery" | "testimonials" | "services" | "inquiries";
+type Tab = "content" | "properties" | "gallery" | "testimonials" | "services" | "board" | "inquiries";
+
+export type BoardMember = {
+  id: string;
+  name: string;
+  designation: string;
+  image_url?: string;
+  bio?: string;
+  sort_order?: number;
+  published?: boolean;
+};
 
 export type Property = {
   id: string;
@@ -126,6 +136,7 @@ export default function CmsPage() {
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [services, setServices] = useState<ServiceStory[]>([]);
+  const [boardMembers, setBoardMembers] = useState<BoardMember[]>([]);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [message, setMessage] = useState("");
   const [isUploading, setIsUploading] = useState(false);
@@ -135,6 +146,7 @@ export default function CmsPage() {
   const [editGallery, setEditGallery] = useState<GalleryItem | null>(null);
   const [editTestimonial, setEditTestimonial] = useState<Testimonial | null>(null);
   const [editService, setEditService] = useState<ServiceStory | null>(null);
+  const [editBoardMember, setEditBoardMember] = useState<BoardMember | null>(null);
 
   // Forms
   const [newProp, setNewProp] = useState<Omit<Property, "id">>({
@@ -160,6 +172,13 @@ export default function CmsPage() {
     customer_role: ""
   });
 
+  const [newBoardMember, setNewBoardMember] = useState<Omit<BoardMember, "id">>({
+    name: "",
+    designation: "",
+    image_url: "",
+    bio: ""
+  });
+
   const [newService, setNewService] = useState<Omit<ServiceStory, "id">>({
     title: "",
     description: "",
@@ -175,12 +194,13 @@ export default function CmsPage() {
         // Optional redirect if unauthenticated, or demo mode
       }
 
-      const [cRes, pRes, gRes, tRes, sRes, iRes] = await Promise.all([
+      const [cRes, pRes, gRes, tRes, sRes, bRes, iRes] = await Promise.all([
         supabase.from("site_content").select("content").eq("id", "homepage").maybeSingle(),
         supabase.from("properties").select("*").order("created_at", { ascending: false }),
         supabase.from("gallery_items").select("*").order("sort_order"),
         supabase.from("testimonials").select("*").order("created_at", { ascending: false }),
         supabase.from("services").select("*").order("sort_order"),
+        supabase.from("board_members").select("*").order("sort_order"),
         supabase.from("inquiries").select("*").order("created_at", { ascending: false })
       ]);
 
@@ -190,6 +210,7 @@ export default function CmsPage() {
       if (gRes.data) setGallery(gRes.data);
       if (tRes.data) setTestimonials(tRes.data);
       if (sRes.data) setServices(sRes.data);
+      if (bRes.data) setBoardMembers(bRes.data);
       if (iRes.data) setInquiries(iRes.data);
     }
     loadData();
@@ -367,6 +388,54 @@ export default function CmsPage() {
     notify("Service story deleted.");
   }
 
+  // --- Board Members CRUD ---
+  async function addBoardMember() {
+    if (!newBoardMember.name || !newBoardMember.designation) {
+      notify("Name and Designation are required.");
+      return;
+    }
+    let updated = boardMembers;
+    if (supabase) {
+      const { data } = await supabase
+        .from("board_members")
+        .insert({ ...newBoardMember, published: true })
+        .select()
+        .single();
+      if (data) {
+        updated = [...boardMembers, data];
+        setBoardMembers(updated);
+      }
+    } else {
+      updated = [...boardMembers, { ...newBoardMember, id: `bdemo-${Date.now()}`, published: true }];
+      setBoardMembers(updated);
+    }
+    localStorage.setItem("nexus_board_members", JSON.stringify(updated));
+    window.dispatchEvent(new Event("nexus_content_updated"));
+    setNewBoardMember({ name: "", designation: "", image_url: "", bio: "" });
+    notify("Board member added!");
+  }
+
+  async function updateBoardMemberSave() {
+    if (!editBoardMember) return;
+    if (supabase) await supabase.from("board_members").update(editBoardMember).eq("id", editBoardMember.id);
+    const updated = boardMembers.map((b) => (b.id === editBoardMember.id ? editBoardMember : b));
+    setBoardMembers(updated);
+    localStorage.setItem("nexus_board_members", JSON.stringify(updated));
+    window.dispatchEvent(new Event("nexus_content_updated"));
+    setEditBoardMember(null);
+    notify("Board member updated!");
+  }
+
+  async function deleteBoardMember(id: string) {
+    if (!window.confirm("Delete this board member?")) return;
+    if (supabase) await supabase.from("board_members").delete().eq("id", id);
+    const updated = boardMembers.filter((b) => b.id !== id);
+    setBoardMembers(updated);
+    localStorage.setItem("nexus_board_members", JSON.stringify(updated));
+    window.dispatchEvent(new Event("nexus_content_updated"));
+    notify("Board member deleted.");
+  }
+
   // --- Inquiries Status Update ---
   async function updateInquiryStatus(id: string, status: Inquiry["status"]) {
     if (supabase) await supabase.from("inquiries").update({ status }).eq("id", id);
@@ -392,6 +461,7 @@ export default function CmsPage() {
     ["gallery", "Gallery", gallery.length],
     ["testimonials", "Testimonials", testimonials.length],
     ["services", "Services & Stories", services.length],
+    ["board", "Board of Directors", boardMembers.length],
     ["inquiries", "Customer Inquiries", inquiries.filter((i) => i.status === "New").length]
   ];
 
@@ -788,7 +858,77 @@ export default function CmsPage() {
           </div>
         )}
 
-        {/* TAB 6: Inquiries Manager */}
+        {/* TAB 6: Board of Directors Manager */}
+        {tab === "board" && (
+          <div className="grid gap-6 lg:grid-cols-[.8fr_1.2fr]">
+            {/* Add Board Member Panel */}
+            <div className="rounded-lg border border-[#0c2d49]/10 bg-white p-6 shadow-sm">
+              <h2 className="font-serif text-2xl">Add Board Member</h2>
+              <div className="mt-5 grid gap-4">
+                <Input text="Full Name *" value={newBoardMember.name} onChange={(v) => setNewBoardMember({ ...newBoardMember, name: v })} />
+                <Input text="Designation / Title *" value={newBoardMember.designation} onChange={(v) => setNewBoardMember({ ...newBoardMember, designation: v })} />
+                <Textarea text="Short Bio" value={newBoardMember.bio || ""} onChange={(v) => setNewBoardMember({ ...newBoardMember, bio: v })} />
+                <div>
+                  <Input text="Photo URL" value={newBoardMember.image_url || ""} onChange={(v) => setNewBoardMember({ ...newBoardMember, image_url: v })} />
+                  <UploadButton onFile={(f) => handleFileUpload(f, (url) => setNewBoardMember({ ...newBoardMember, image_url: url }))} loading={isUploading} />
+                </div>
+                <button
+                  onClick={addBoardMember}
+                  className="mt-2 rounded-md bg-[#092945] py-3 text-sm font-bold text-white transition hover:bg-[#bc8140]"
+                >
+                  <Plus size={16} className="mr-1 inline" /> Add Board Member
+                </button>
+              </div>
+            </div>
+
+            {/* Board Members List */}
+            <div className="rounded-lg border border-[#0c2d49]/10 bg-white p-6 shadow-sm">
+              <h2 className="font-serif text-2xl">Board of Directors ({boardMembers.length})</h2>
+              <div className="mt-5 grid gap-4">
+                {boardMembers.length === 0 && (
+                  <p className="py-8 text-center text-sm text-[#557084]">No board members yet. Add your first one.</p>
+                )}
+                {boardMembers.map((b) => (
+                  <div
+                    key={b.id}
+                    className="flex items-center gap-4 rounded-lg bg-[#f5f7f9] p-4 border border-[#0c2d49]/5"
+                  >
+                    <div className="shrink-0">
+                      {b.image_url ? (
+                        <img src={b.image_url} alt={b.name} className="h-14 w-14 rounded-full object-cover border-2 border-white shadow" />
+                      ) : (
+                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#092945] text-white">
+                          <User size={22} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <strong className="block font-serif text-base text-[#092945] truncate">{b.name}</strong>
+                      <span className="text-xs font-bold text-[#bc8140]">{b.designation}</span>
+                      {b.bio && <p className="mt-1 text-xs text-[#557084] line-clamp-2">{b.bio}</p>}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => setEditBoardMember(b)}
+                        className="flex items-center gap-1 rounded bg-white px-3 py-1.5 text-xs font-bold text-[#092945] border shadow-sm hover:bg-gray-50"
+                      >
+                        <Edit2 size={13} /> Edit
+                      </button>
+                      <button
+                        onClick={() => deleteBoardMember(b.id)}
+                        className="rounded bg-white p-1.5 text-red-500 border shadow-sm hover:bg-red-50"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 7: Inquiries Manager */}
         {tab === "inquiries" && (
           <div className="rounded-lg border border-[#0c2d49]/10 bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between border-b pb-4 mb-6">
@@ -920,6 +1060,19 @@ export default function CmsPage() {
           <div>
             <Input text="Image URL" value={editService.image_url || ""} onChange={(v) => setEditService({ ...editService, image_url: v })} />
             <UploadButton onFile={(f) => handleFileUpload(f, (url) => setEditService({ ...editService, image_url: url }))} loading={isUploading} />
+          </div>
+        </Modal>
+      )}
+
+      {/* --- EDIT BOARD MEMBER MODAL --- */}
+      {editBoardMember && (
+        <Modal title="Edit Board Member" onClose={() => setEditBoardMember(null)} onSave={updateBoardMemberSave}>
+          <Input text="Full Name" value={editBoardMember.name} onChange={(v) => setEditBoardMember({ ...editBoardMember, name: v })} />
+          <Input text="Designation / Title" value={editBoardMember.designation} onChange={(v) => setEditBoardMember({ ...editBoardMember, designation: v })} />
+          <Textarea text="Short Bio" value={editBoardMember.bio || ""} onChange={(v) => setEditBoardMember({ ...editBoardMember, bio: v })} />
+          <div>
+            <Input text="Photo URL" value={editBoardMember.image_url || ""} onChange={(v) => setEditBoardMember({ ...editBoardMember, image_url: v })} />
+            <UploadButton onFile={(f) => handleFileUpload(f, (url) => setEditBoardMember({ ...editBoardMember, image_url: url }))} loading={isUploading} />
           </div>
         </Modal>
       )}

@@ -59,6 +59,15 @@ export type ServiceStory = {
   image_url?: string;
 };
 
+export type BoardMember = {
+  id: string;
+  name: string;
+  designation: string;
+  image_url?: string;
+  bio?: string;
+  sort_order?: number;
+};
+
 export type SiteContent = {
   brand_name: string;
   brand_subtitle: string;
@@ -85,6 +94,9 @@ export type SiteContent = {
   about_stat2_label: string;
   portfolio_eyebrow: string;
   portfolio_title: string;
+  board_eyebrow: string;
+  board_title: string;
+  board_description: string;
   gallery_eyebrow: string;
   gallery_title: string;
   journal_eyebrow: string;
@@ -128,6 +140,9 @@ const defaultSiteContent: SiteContent = {
   about_stat2_label: "Accountable service",
   portfolio_eyebrow: "Our portfolio",
   portfolio_title: "Addresses with intention.",
+  board_eyebrow: "Leadership & Vision",
+  board_title: "Board of Directors",
+  board_description: "Leadership with development, finance, structural engineering, and design expertise.",
   gallery_eyebrow: "See the detail",
   gallery_title: "A visual language of care.",
   journal_eyebrow: "The Nexus journal",
@@ -196,6 +211,30 @@ const defaultServices: ServiceStory[] = [
   { id: "s-2", title: "Inside Nexus Parkview", description: "A private walkthrough of our flagship residence in Gulshan.", icon: "Video", image_url: "https://images.unsplash.com/photo-160066753086-00f18fb6b3ea?auto=format&fit=crop&w=800&q=85" }
 ];
 
+const defaultBoardMembers: BoardMember[] = [
+  {
+    id: "bm-1",
+    name: "Ahsan Rahman",
+    designation: "Chairman",
+    image_url: "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=800&q=85",
+    bio: "Strategic visionary with over 20 years of real estate development and urban growth leadership in Bangladesh."
+  },
+  {
+    id: "bm-2",
+    name: "Nadia Karim",
+    designation: "Managing Director",
+    image_url: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=800&q=85",
+    bio: "Leading operations, architecture standards, and long-term project delivery across residential and commercial towers."
+  },
+  {
+    id: "bm-3",
+    name: "Tanvir Hasan",
+    designation: "Director, Operations",
+    image_url: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=800&q=85",
+    bio: "Overseeing site execution, engineering safety compliance, customer relations, and corporate governance."
+  }
+];
+
 export default function HomePage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [filter, setFilter] = useState("All projects");
@@ -203,6 +242,7 @@ export default function HomePage() {
   // Dynamic CMS state
   const [content, setContent] = useState<SiteContent>(defaultSiteContent);
   const [properties, setProperties] = useState<Property[]>(defaultProperties);
+  const [boardMembers, setBoardMembers] = useState<BoardMember[]>(defaultBoardMembers);
   const [gallery, setGallery] = useState<GalleryItem[]>(defaultGallery);
   const [testimonials, setTestimonials] = useState<Testimonial[]>(defaultTestimonials);
   const [services, setServices] = useState<ServiceStory[]>(defaultServices);
@@ -235,6 +275,11 @@ export default function HomePage() {
         if (cachedTestimonials) setTestimonials(JSON.parse(cachedTestimonials));
         const cachedServices = localStorage.getItem("nexus_services");
         if (cachedServices) setServices(JSON.parse(cachedServices));
+        const cachedBoard = localStorage.getItem("nexus_board_members");
+        if (cachedBoard) {
+          const parsed = JSON.parse(cachedBoard);
+          if (parsed?.length) setBoardMembers(parsed);
+        }
       } catch (e) {
         console.error(e);
       }
@@ -251,8 +296,9 @@ export default function HomePage() {
         supabase.from("properties").select("*").order("created_at", { ascending: false }),
         supabase.from("gallery_items").select("*").order("sort_order"),
         supabase.from("testimonials").select("*").eq("published", true).order("created_at", { ascending: false }),
-        supabase.from("services").select("*").eq("published", true).order("sort_order")
-      ]).then(([contentRes, propRes, galleryRes, testRes, servRes]) => {
+        supabase.from("services").select("*").eq("published", true).order("sort_order"),
+        supabase.from("board_members").select("*").eq("published", true).order("sort_order")
+      ]).then(([contentRes, propRes, galleryRes, testRes, servRes, boardRes]) => {
         const siteContentData = contentRes.data?.content as Partial<SiteContent> | undefined;
         if (siteContentData) {
           setContent((prev) => ({ ...prev, ...siteContentData }));
@@ -268,6 +314,9 @@ export default function HomePage() {
         }
         if (servRes.data?.length) {
           setServices(servRes.data);
+        }
+        if (boardRes.data?.length) {
+          setBoardMembers(boardRes.data);
         }
       }).catch(console.error);
     }
@@ -351,6 +400,7 @@ export default function HomePage() {
           <nav className="hidden items-center gap-7 text-[13px] font-semibold text-[#314b5e] lg:flex">
             <button onClick={() => go("about")} className="transition hover:text-[#bc8140]">About</button>
             <button onClick={() => go("projects")} className="transition hover:text-[#bc8140]">Projects</button>
+            <button onClick={() => go("board")} className="transition hover:text-[#bc8140]">Board</button>
             <button onClick={() => go("gallery")} className="transition hover:text-[#bc8140]">Gallery</button>
             <button onClick={() => go("stories")} className="transition hover:text-[#bc8140]">Stories</button>
             <button onClick={() => go("contact")} className="transition hover:text-[#bc8140]">Contact</button>
@@ -377,6 +427,7 @@ export default function HomePage() {
               <div className="flex flex-col gap-5 text-sm font-semibold">
                 <button onClick={() => go("about")} className="text-left">About</button>
                 <button onClick={() => go("projects")} className="text-left">Projects</button>
+                <button onClick={() => go("board")} className="text-left">Board</button>
                 <button onClick={() => go("gallery")} className="text-left">Gallery</button>
                 <button onClick={() => go("stories")} className="text-left">Stories</button>
                 <button onClick={() => go("contact")} className="text-left">Contact</button>
@@ -451,28 +502,73 @@ export default function HomePage() {
 
       {/* About Section */}
       <section id="about" className="border-b border-[#0c2d49]/10 bg-white">
-        <div className="mx-auto grid max-w-7xl gap-12 px-6 py-20 lg:grid-cols-[.75fr_1.25fr] lg:px-10 lg:py-28">
-          <div>
-            <p className="mb-4 text-xs font-bold uppercase tracking-[.22em] text-[#bc8140]">
-              {content.about_eyebrow}
-            </p>
-            <h2 className="font-serif text-4xl leading-tight sm:text-5xl text-[#092945]">
-              {content.about_title} <span className="italic text-[#bc8140]">{content.about_title_accent}</span>
-            </h2>
+        <div className="mx-auto max-w-7xl px-6 py-20 lg:px-10 lg:py-28">
+          {/* About Intro + Stats */}
+          <div className="grid gap-12 lg:grid-cols-[.75fr_1.25fr]">
+            <div>
+              <p className="mb-4 text-xs font-bold uppercase tracking-[.22em] text-[#bc8140]">
+                {content.about_eyebrow}
+              </p>
+              <h2 className="font-serif text-4xl leading-tight sm:text-5xl text-[#092945]">
+                {content.about_title} <span className="italic text-[#bc8140]">{content.about_title_accent}</span>
+              </h2>
+            </div>
+            <div className="grid gap-8 sm:grid-cols-2">
+              <p className="text-[15px] leading-7 text-[#557084]">
+                {content.about_description}
+              </p>
+              <div className="grid grid-cols-2 gap-5">
+                <div className="border-l-2 border-[#c99554] pl-4">
+                  <strong className="font-serif text-3xl text-[#092945]">{content.about_stat1_number}</strong>
+                  <span className="mt-1 block text-xs text-[#557084]">{content.about_stat1_label}</span>
+                </div>
+                <div className="border-l-2 border-[#c99554] pl-4">
+                  <strong className="font-serif text-3xl text-[#092945]">{content.about_stat2_number}</strong>
+                  <span className="mt-1 block text-xs text-[#557084]">{content.about_stat2_label}</span>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="grid gap-8 sm:grid-cols-2">
-            <p className="text-[15px] leading-7 text-[#557084]">
-              {content.about_description}
-            </p>
-            <div className="grid grid-cols-2 gap-5">
-              <div className="border-l-2 border-[#c99554] pl-4">
-                <strong className="font-serif text-3xl text-[#092945]">{content.about_stat1_number}</strong>
-                <span className="mt-1 block text-xs text-[#557084]">{content.about_stat1_label}</span>
-              </div>
-              <div className="border-l-2 border-[#c99554] pl-4">
-                <strong className="font-serif text-3xl text-[#092945]">{content.about_stat2_number}</strong>
-                <span className="mt-1 block text-xs text-[#557084]">{content.about_stat2_label}</span>
-              </div>
+
+          {/* Board of Directors — inside About */}
+          <div id="board" className="mt-20 border-t border-[#0c2d49]/10 pt-16">
+            <div className="mx-auto max-w-2xl text-center mb-12">
+              <p className="mb-3 text-xs font-bold uppercase tracking-[.22em] text-[#bc8140]">
+                {content.board_eyebrow || "Leadership & Vision"}
+              </p>
+              <h2 className="font-serif text-4xl leading-tight sm:text-5xl text-[#092945]">
+                {content.board_title || "Board of Directors"}
+              </h2>
+              <p className="mt-4 text-sm leading-6 text-[#557084]">
+                {content.board_description || "Leadership with development, finance, structural engineering, and design expertise."}
+              </p>
+            </div>
+
+            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+              {boardMembers.map((member) => (
+                <div
+                  key={member.id}
+                  className="group overflow-hidden rounded-xl border border-[#0c2d49]/10 bg-[#f8f9fb] shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
+                >
+                  <div className="relative h-80 overflow-hidden bg-gray-100">
+                    <img
+                      src={member.image_url || "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=800&q=85"}
+                      alt={member.name}
+                      className="h-full w-full object-cover object-top transition duration-700 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#092945]/80 via-transparent to-transparent opacity-60 transition group-hover:opacity-80" />
+                    <div className="absolute bottom-4 left-4 right-4">
+                      <span className="inline-block rounded bg-[#bc8140] px-3 py-1 text-[11px] font-bold text-white shadow">
+                        {member.designation}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <h3 className="font-serif text-2xl text-[#092945]">{member.name}</h3>
+                    {member.bio && <p className="mt-2 text-xs leading-5 text-[#557084]">{member.bio}</p>}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -551,6 +647,8 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+
 
       {/* Gallery Section */}
       <section id="gallery" className="bg-[#edf2f5] px-6 py-20 lg:px-10 lg:py-28">
