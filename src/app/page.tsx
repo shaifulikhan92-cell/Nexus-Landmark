@@ -214,24 +214,10 @@ const defaultServices: ServiceStory[] = [
 const defaultBoardMembers: BoardMember[] = [
   {
     id: "bm-1",
-    name: "Ahsan Rahman",
-    designation: "Chairman",
-    image_url: "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=800&q=85",
-    bio: "Strategic visionary with over 20 years of real estate development and urban growth leadership in Bangladesh."
-  },
-  {
-    id: "bm-2",
-    name: "Nadia Karim",
+    name: "Abdul Qaium (Reyad)",
     designation: "Managing Director",
-    image_url: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=800&q=85",
-    bio: "Leading operations, architecture standards, and long-term project delivery across residential and commercial towers."
-  },
-  {
-    id: "bm-3",
-    name: "Tanvir Hasan",
-    designation: "Director, Operations",
-    image_url: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=800&q=85",
-    bio: "Overseeing site execution, engineering safety compliance, customer relations, and corporate governance."
+    image_url: "/board-member.jpg",
+    bio: "Leading operations, strategic planning, and long-term project delivery across residential and commercial developments at Nexus Landmark."
   }
 ];
 
