@@ -2,7 +2,9 @@
 
 import { ChangeEvent, useEffect, useState } from "react";
 import {
+  ArrowDown,
   ArrowLeft,
+  ArrowUp,
   Building2,
   Check,
   CheckCircle2,
@@ -305,23 +307,39 @@ export default function CmsPage() {
 
   // --- Image Upload Utility ---
   async function handleFileUpload(file: File, callback: (url: string) => void) {
-    if (!supabase) {
-      notify("Supabase not connected. Using local blob URL preview.");
-      const localUrl = URL.createObjectURL(file);
-      callback(localUrl);
-      return;
-    }
     setIsUploading(true);
-    const path = `uploads/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "-")}`;
-    const { error } = await supabase.storage.from("site-assets").upload(path, file, { upsert: true });
-    setIsUploading(false);
-    if (error) {
-      notify("Upload failed: " + error.message);
-      return;
-    }
-    const { data } = supabase.storage.from("site-assets").getPublicUrl(path);
-    callback(data.publicUrl);
-    notify("Image uploaded successfully!");
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64Url = e.target?.result as string;
+
+      if (supabase) {
+        try {
+          const path = `uploads/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "-")}`;
+          const { error } = await supabase.storage.from("site-assets").upload(path, file, { upsert: true });
+          if (!error) {
+            const { data } = supabase.storage.from("site-assets").getPublicUrl(path);
+            if (data?.publicUrl) {
+              callback(data.publicUrl);
+              setIsUploading(false);
+              notify("Image uploaded successfully!");
+              return;
+            }
+          }
+        } catch (err) {
+          console.error("Storage upload error:", err);
+        }
+      }
+
+      callback(base64Url);
+      setIsUploading(false);
+      notify("Image attached successfully!");
+    };
+    reader.onerror = () => {
+      setIsUploading(false);
+      notify("Failed to read image file.");
+    };
+    reader.readAsDataURL(file);
   }
 
   // --- Content Save ---
@@ -494,12 +512,44 @@ export default function CmsPage() {
         console.error("Supabase insert exception:", err);
       }
     }
-    const updated = [newItem, ...boardMembers];
+
+    const isMD = newBoardMember.designation.toLowerCase().includes("managing director") || newBoardMember.designation.toLowerCase().includes("md");
+    const updated = isMD ? [newItem, ...boardMembers] : [...boardMembers, newItem];
+    
     setBoardMembers(updated);
     localStorage.setItem("nexus_board_members", JSON.stringify(updated));
     window.dispatchEvent(new Event("nexus_content_updated"));
     setNewBoardMember({ name: "", designation: "", image_url: "", bio: "" });
     notify("Board member added successfully!");
+  }
+
+  async function moveBoardMember(index: number, direction: "up" | "down") {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= boardMembers.length) return;
+
+    const copy = [...boardMembers];
+    const temp = copy[index];
+    copy[index] = copy[targetIndex];
+    copy[targetIndex] = temp;
+
+    const updated = copy.map((item, idx) => ({ ...item, sort_order: idx + 1 }));
+    setBoardMembers(updated);
+    localStorage.setItem("nexus_board_members", JSON.stringify(updated));
+    window.dispatchEvent(new Event("nexus_content_updated"));
+
+    const client = supabase;
+    if (client) {
+      try {
+        await Promise.all(
+          updated.map((item) =>
+            client.from("board_members").update({ sort_order: item.sort_order }).eq("id", item.id)
+          )
+        );
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    notify("Board sequence updated!");
   }
 
   async function updateBoardMemberSave() {
@@ -975,7 +1025,7 @@ export default function CmsPage() {
                 {boardMembers.length === 0 && (
                   <p className="py-8 text-center text-sm text-[#557084]">No board members yet. Add your first one.</p>
                 )}
-                {boardMembers.map((b) => (
+                {boardMembers.map((b, idx) => (
                   <div
                     key={b.id}
                     className="flex items-center gap-4 rounded-lg bg-[#f5f7f9] p-4 border border-[#0c2d49]/5"
@@ -994,7 +1044,25 @@ export default function CmsPage() {
                       <span className="text-xs font-bold text-[#bc8140]">{b.designation}</span>
                       {b.bio && <p className="mt-1 text-xs text-[#557084] line-clamp-2">{b.bio}</p>}
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <div className="flex flex-col gap-0.5">
+                        <button
+                          disabled={idx === 0}
+                          onClick={() => moveBoardMember(idx, "up")}
+                          title="Move Up (1st sequence)"
+                          className="rounded bg-white p-1 text-xs text-[#092945] border shadow-sm hover:bg-gray-100 disabled:opacity-30"
+                        >
+                          <ArrowUp size={13} />
+                        </button>
+                        <button
+                          disabled={idx === boardMembers.length - 1}
+                          onClick={() => moveBoardMember(idx, "down")}
+                          title="Move Down"
+                          className="rounded bg-white p-1 text-xs text-[#092945] border shadow-sm hover:bg-gray-100 disabled:opacity-30"
+                        >
+                          <ArrowDown size={13} />
+                        </button>
+                      </div>
                       <button
                         onClick={() => setEditBoardMember(b)}
                         className="flex items-center gap-1 rounded bg-white px-3 py-1.5 text-xs font-bold text-[#092945] border shadow-sm hover:bg-gray-50"

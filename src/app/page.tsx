@@ -531,7 +531,13 @@ export default function HomePage() {
             </div>
 
             <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-              {boardMembers.map((member) => (
+              {[...boardMembers].sort((a, b) => {
+                const aMD = a.designation.toLowerCase().includes("managing director") || a.designation.toLowerCase().includes("md");
+                const bMD = b.designation.toLowerCase().includes("managing director") || b.designation.toLowerCase().includes("md");
+                if (aMD && !bMD) return -1;
+                if (!aMD && bMD) return 1;
+                return (a.sort_order ?? 99) - (b.sort_order ?? 99);
+              }).map((member) => (
                 <div
                   key={member.id}
                   className="group overflow-hidden rounded-xl border border-[#0c2d49]/10 bg-[#f8f9fb] shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
