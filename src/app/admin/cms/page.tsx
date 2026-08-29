@@ -188,30 +188,50 @@ export default function CmsPage() {
 
   useEffect(() => {
     async function loadData() {
-      if (!supabase) return;
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
-        // Optional redirect if unauthenticated, or demo mode
+      // 1. Initial load from localStorage cache
+      try {
+        const cachedProps = localStorage.getItem("nexus_properties");
+        if (cachedProps) setProjects(JSON.parse(cachedProps));
+        const cachedGallery = localStorage.getItem("nexus_gallery");
+        if (cachedGallery) setGallery(JSON.parse(cachedGallery));
+        const cachedTestimonials = localStorage.getItem("nexus_testimonials");
+        if (cachedTestimonials) setTestimonials(JSON.parse(cachedTestimonials));
+        const cachedServices = localStorage.getItem("nexus_services");
+        if (cachedServices) setServices(JSON.parse(cachedServices));
+        const cachedBoard = localStorage.getItem("nexus_board_members");
+        if (cachedBoard) {
+          const parsed = JSON.parse(cachedBoard);
+          if (parsed?.length) setBoardMembers(parsed);
+        }
+      } catch (e) {
+        console.error(e);
       }
 
-      const [cRes, pRes, gRes, tRes, sRes, bRes, iRes] = await Promise.all([
-        supabase.from("site_content").select("content").eq("id", "homepage").maybeSingle(),
-        supabase.from("properties").select("*").order("created_at", { ascending: false }),
-        supabase.from("gallery_items").select("*").order("sort_order"),
-        supabase.from("testimonials").select("*").order("created_at", { ascending: false }),
-        supabase.from("services").select("*").order("sort_order"),
-        supabase.from("board_members").select("*").order("sort_order"),
-        supabase.from("inquiries").select("*").order("created_at", { ascending: false })
-      ]);
+      if (!supabase) return;
 
-      const siteContentData = cRes.data?.content as SiteContent | undefined;
-      if (siteContentData) setContent({ ...defaultContent, ...siteContentData });
-      if (pRes.data) setProjects(pRes.data);
-      if (gRes.data) setGallery(gRes.data);
-      if (tRes.data) setTestimonials(tRes.data);
-      if (sRes.data) setServices(sRes.data);
-      if (bRes.data) setBoardMembers(bRes.data);
-      if (iRes.data) setInquiries(iRes.data);
+      // 2. Load from Supabase
+      try {
+        const [cRes, pRes, gRes, tRes, sRes, bRes, iRes] = await Promise.all([
+          supabase.from("site_content").select("content").eq("id", "homepage").maybeSingle(),
+          supabase.from("properties").select("*").order("created_at", { ascending: false }),
+          supabase.from("gallery_items").select("*").order("sort_order"),
+          supabase.from("testimonials").select("*").order("created_at", { ascending: false }),
+          supabase.from("services").select("*").order("sort_order"),
+          supabase.from("board_members").select("*").order("sort_order"),
+          supabase.from("inquiries").select("*").order("created_at", { ascending: false })
+        ]);
+
+        const siteContentData = cRes.data?.content as SiteContent | undefined;
+        if (siteContentData) setContent({ ...defaultContent, ...siteContentData });
+        if (pRes.data && pRes.data.length > 0) setProjects(pRes.data);
+        if (gRes.data && gRes.data.length > 0) setGallery(gRes.data);
+        if (tRes.data && tRes.data.length > 0) setTestimonials(tRes.data);
+        if (sRes.data && sRes.data.length > 0) setServices(sRes.data);
+        if (bRes.data && bRes.data.length > 0) setBoardMembers(bRes.data);
+        if (iRes.data) setInquiries(iRes.data);
+      } catch (err) {
+        console.error("Supabase load error:", err);
+      }
     }
     loadData();
   }, [router]);
@@ -394,25 +414,30 @@ export default function CmsPage() {
       notify("Name and Designation are required.");
       return;
     }
-    let updated = boardMembers;
+    let newItem: BoardMember = {
+      ...newBoardMember,
+      id: `bm-${Date.now()}`,
+      published: true
+    };
     if (supabase) {
-      const { data } = await supabase
-        .from("board_members")
-        .insert({ ...newBoardMember, published: true })
-        .select()
-        .single();
-      if (data) {
-        updated = [...boardMembers, data];
-        setBoardMembers(updated);
+      try {
+        const { data, error } = await supabase
+          .from("board_members")
+          .insert({ ...newBoardMember, published: true })
+          .select()
+          .single();
+        if (data) newItem = data;
+        if (error) console.error("Supabase insert error:", error);
+      } catch (err) {
+        console.error("Supabase insert exception:", err);
       }
-    } else {
-      updated = [...boardMembers, { ...newBoardMember, id: `bdemo-${Date.now()}`, published: true }];
-      setBoardMembers(updated);
     }
+    const updated = [newItem, ...boardMembers];
+    setBoardMembers(updated);
     localStorage.setItem("nexus_board_members", JSON.stringify(updated));
     window.dispatchEvent(new Event("nexus_content_updated"));
     setNewBoardMember({ name: "", designation: "", image_url: "", bio: "" });
-    notify("Board member added!");
+    notify("Board member added successfully!");
   }
 
   async function updateBoardMemberSave() {
