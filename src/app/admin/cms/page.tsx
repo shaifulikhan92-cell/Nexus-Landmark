@@ -128,15 +128,77 @@ const defaultContent: SiteContent = {
   footer_tagline: "Premium residential and commercial developments shaped by design intelligence, local insight, and long-term trust."
 };
 
+const defaultProperties: Property[] = [
+  {
+    id: "prop-1",
+    title: "Nexus Parkview",
+    location: "Gulshan, Dhaka",
+    description: "A calm, contemporary family residence shaped around light, space, and everyday ease.",
+    property_type: "Residential",
+    status: "Ongoing",
+    size: "1,850–2,450 sft",
+    price: "On request",
+    image_url: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=85"
+  },
+  {
+    id: "prop-2",
+    title: "Landmark One",
+    location: "Banani, Dhaka",
+    description: "A confident commercial address for ambitious businesses, retail, and lifestyle brands.",
+    property_type: "Commercial",
+    status: "Upcoming",
+    size: "1,200–8,000 sft",
+    price: "On request",
+    image_url: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=85"
+  },
+  {
+    id: "prop-3",
+    title: "The Grove Residences",
+    location: "Uttara, Dhaka",
+    description: "Thoughtful apartments with green views, practical planning, and a warm sense of home.",
+    property_type: "Residential",
+    status: "Completed",
+    size: "1,450–1,900 sft",
+    price: "On request",
+    image_url: "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1200&q=85"
+  }
+];
+
+const defaultGallery: GalleryItem[] = [
+  { id: "g-1", label: "Exterior", title: "Architectural expression", image_url: "https://images.unsplash.com/photo-1600607688969-a5bfcd646154?auto=format&fit=crop&w=1000&q=85" },
+  { id: "g-2", label: "Interior", title: "Living, refined", image_url: "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1000&q=85" },
+  { id: "g-3", label: "Progress", title: "Built with care", image_url: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1000&q=85" }
+];
+
+const defaultTestimonials: Testimonial[] = [
+  { id: "t-1", quote: "The process felt clear from day one. The design is premium, but more importantly, it works beautifully for our family.", customer_name: "Farzana Chowdhury", customer_role: "Nexus Homeowner" },
+  { id: "t-2", quote: "Landmark One gives our corporate office exactly the prestige and architectural quality we needed in Banani.", customer_name: "Tanvir Ahmed", customer_role: "CEO, TechVentures" }
+];
+
+const defaultServices: ServiceStory[] = [
+  { id: "s-1", title: "Designing for the way Dhaka lives", description: "How local context, airflow, and light shape every Nexus Landmark address.", icon: "Compass", image_url: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=85" },
+  { id: "s-2", title: "Inside Nexus Parkview", description: "A private walkthrough of our flagship residence in Gulshan.", icon: "Video", image_url: "https://images.unsplash.com/photo-160066753086-00f18fb6b3ea?auto=format&fit=crop&w=800&q=85" }
+];
+
+const defaultBoardMembers: BoardMember[] = [
+  {
+    id: "bm-1",
+    name: "Abdul Qaium (Reyad)",
+    designation: "Managing Director",
+    image_url: "/board-member.jpg",
+    bio: "Leading operations, strategic planning, and long-term project delivery across residential and commercial developments at Nexus Landmark."
+  }
+];
+
 export default function CmsPage() {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("content");
   const [content, setContent] = useState<SiteContent>(defaultContent);
-  const [properties, setProjects] = useState<Property[]>([]);
-  const [gallery, setGallery] = useState<GalleryItem[]>([]);
-  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
-  const [services, setServices] = useState<ServiceStory[]>([]);
-  const [boardMembers, setBoardMembers] = useState<BoardMember[]>([]);
+  const [properties, setProjects] = useState<Property[]>(defaultProperties);
+  const [gallery, setGallery] = useState<GalleryItem[]>(defaultGallery);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>(defaultTestimonials);
+  const [services, setServices] = useState<ServiceStory[]>(defaultServices);
+  const [boardMembers, setBoardMembers] = useState<BoardMember[]>(defaultBoardMembers);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [message, setMessage] = useState("");
   const [isUploading, setIsUploading] = useState(false);
