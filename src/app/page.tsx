@@ -290,18 +290,11 @@ export default function HomePage() {
         if (galleryRes.data?.length) setGallery(galleryRes.data);
         if (testRes.data?.length) setTestimonials(testRes.data);
         if (servRes.data?.length) setServices(servRes.data);
-        // Keep the complete public board visible while an older Supabase
-        // database is being brought up to date with the four default members.
+        // Supabase is the shared source of truth, so every device receives
+        // the same board records managed in the CMS.
         const publicBoardMembers = boardRes.data ?? [];
-        const expectedBoardNames = new Set(defaultBoardMembers.map((member) => member.name));
-        const hasExpectedBoard = publicBoardMembers.length === defaultBoardMembers.length &&
-          publicBoardMembers.every((member) => expectedBoardNames.has(member.name));
-        if (hasExpectedBoard) {
+        if (publicBoardMembers.length > 0) {
           setBoardMembers(publicBoardMembers);
-        } else {
-          // Do not let stale/different Supabase seed data replace the board
-          // configured for this site on devices without localStorage data.
-          setBoardMembers(defaultBoardMembers);
         }
       }).catch(console.error);
     }
