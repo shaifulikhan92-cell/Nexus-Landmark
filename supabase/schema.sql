@@ -210,7 +210,10 @@ on conflict (id) do update set content = excluded.content;
 -- Seed Data: Board Members
 insert into public.board_members (name, designation, image_url, bio, sort_order, published)
 values
-('Abdul Qaium (Reyad)', 'Managing Director', '/board-member.jpg', 'Leading operations, strategic planning, and long-term project delivery across residential and commercial developments at Nexus Landmark.', 1, true)
+('Abdul Qaium (Reyad)', 'Managing Director', '/board-member.jpg', 'Leading operations, strategic planning, and long-term project delivery across residential and commercial developments at Nexus Landmark.', 1, true),
+('Shah Forhan Khan', 'Chairman', 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=800&q=85', 'Our vision is to build more than that buildings; We aim to create lasting values, trust and happiness. With innovation, integrity and excellence.', 2, true),
+('S.M.Anisur Rahman', 'Vice Chairman', 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=800&q=85', 'Guiding executive strategy, architectural direction, and strategic partnerships for Nexus Landmark properties.', 3, true),
+('Tanvir Hasan', 'Director, Operations', 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=800&q=85', 'Overseeing site execution, engineering safety compliance, customer relations, and corporate governance.', 4, true)
 on conflict do nothing;
 
 -- Seed Data: Sample Gallery Items

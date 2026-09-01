@@ -217,7 +217,32 @@ const defaultBoardMembers: BoardMember[] = [
     name: "Abdul Qaium (Reyad)",
     designation: "Managing Director",
     image_url: "/board-member.jpg",
-    bio: "Leading operations, strategic planning, and long-term project delivery across residential and commercial developments at Nexus Landmark."
+    bio: "Leading operations, strategic planning, and long-term project delivery across residential and commercial developments at Nexus Landmark.",
+    sort_order: 1
+  },
+  {
+    id: "bm-2",
+    name: "Shah Forhan Khan",
+    designation: "Chairman",
+    image_url: "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=800&q=85",
+    bio: "Our vision is to build more than that buildings; We aim to create lasting values, trust and happiness. With innovation, integrity and excellence.",
+    sort_order: 2
+  },
+  {
+    id: "bm-3",
+    name: "S.M.Anisur Rahman",
+    designation: "Vice Chairman",
+    image_url: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=800&q=85",
+    bio: "Guiding executive strategy, architectural direction, and strategic partnerships for Nexus Landmark properties.",
+    sort_order: 3
+  },
+  {
+    id: "bm-4",
+    name: "Tanvir Hasan",
+    designation: "Director, Operations",
+    image_url: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=800&q=85",
+    bio: "Overseeing site execution, engineering safety compliance, customer relations, and corporate governance.",
+    sort_order: 4
   }
 ];
 
@@ -248,34 +273,7 @@ export default function HomePage() {
   const [inquirySuccess, setInquirySuccess] = useState(false);
 
   useEffect(() => {
-    // 1. Try reading locally saved CMS edits first for instant real-time sync
-    const loadContent = () => {
-      try {
-        const cachedContent = localStorage.getItem("nexus_site_content");
-        if (cachedContent) setContent((prev) => ({ ...prev, ...JSON.parse(cachedContent) }));
-        const cachedProps = localStorage.getItem("nexus_properties");
-        if (cachedProps) setProperties(JSON.parse(cachedProps));
-        const cachedGallery = localStorage.getItem("nexus_gallery");
-        if (cachedGallery) setGallery(JSON.parse(cachedGallery));
-        const cachedTestimonials = localStorage.getItem("nexus_testimonials");
-        if (cachedTestimonials) setTestimonials(JSON.parse(cachedTestimonials));
-        const cachedServices = localStorage.getItem("nexus_services");
-        if (cachedServices) setServices(JSON.parse(cachedServices));
-        const cachedBoard = localStorage.getItem("nexus_board_members");
-        if (cachedBoard) {
-          const parsed = JSON.parse(cachedBoard);
-          if (parsed?.length) setBoardMembers(parsed);
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    };
-
-    loadContent();
-    window.addEventListener("nexus_content_updated", loadContent);
-    window.addEventListener("storage", loadContent);
-
-    // 2. Sync from Supabase database
+    // 1. Load Supabase data first (source of truth — works on ALL devices)
     if (supabase) {
       Promise.all([
         supabase.from("site_content").select("content").eq("id", "homepage").maybeSingle(),
@@ -285,31 +283,51 @@ export default function HomePage() {
         supabase.from("services").select("*").eq("published", true).order("sort_order"),
         supabase.from("board_members").select("*").eq("published", true).order("sort_order")
       ]).then(([contentRes, propRes, galleryRes, testRes, servRes, boardRes]) => {
-        const siteContentData = contentRes.data?.content as Partial<SiteContent> | undefined;
-        if (siteContentData) {
-          setContent((prev) => ({ ...prev, ...siteContentData }));
+        if (contentRes.data?.content) {
+          setContent((prev) => ({ ...prev, ...(contentRes.data!.content as Partial<SiteContent>) }));
         }
-        if (propRes.data?.length) {
-          setProperties(propRes.data);
-        }
-        if (galleryRes.data?.length) {
-          setGallery(galleryRes.data);
-        }
-        if (testRes.data?.length) {
-          setTestimonials(testRes.data);
-        }
-        if (servRes.data?.length) {
-          setServices(servRes.data);
-        }
-        if (boardRes.data?.length) {
-          setBoardMembers(boardRes.data);
+        if (propRes.data?.length) setProperties(propRes.data);
+        if (galleryRes.data?.length) setGallery(galleryRes.data);
+        if (testRes.data?.length) setTestimonials(testRes.data);
+        if (servRes.data?.length) setServices(servRes.data);
+        // Keep the complete public board visible while an older Supabase
+        // database is being brought up to date with the four default members.
+        const publicBoardMembers = boardRes.data ?? [];
+        if (publicBoardMembers.length >= defaultBoardMembers.length) {
+          setBoardMembers(publicBoardMembers);
+        } else {
+          setBoardMembers(defaultBoardMembers);
         }
       }).catch(console.error);
     }
 
+    // 2. Also apply any CMS live-edit overrides from localStorage (desktop admin real-time sync only)
+    const applyCmsOverrides = () => {
+      try {
+        const cachedContent = localStorage.getItem("nexus_site_content");
+        if (cachedContent) setContent((prev) => ({ ...prev, ...JSON.parse(cachedContent) }));
+        const cachedProps = localStorage.getItem("nexus_properties");
+        if (cachedProps) { const p = JSON.parse(cachedProps); if (p?.length) setProperties(p); }
+        const cachedGallery = localStorage.getItem("nexus_gallery");
+        if (cachedGallery) { const g = JSON.parse(cachedGallery); if (g?.length) setGallery(g); }
+        const cachedTestimonials = localStorage.getItem("nexus_testimonials");
+        if (cachedTestimonials) { const t = JSON.parse(cachedTestimonials); if (t?.length) setTestimonials(t); }
+        const cachedServices = localStorage.getItem("nexus_services");
+        if (cachedServices) { const s = JSON.parse(cachedServices); if (s?.length) setServices(s); }
+        // Board members: only use localStorage if it has MORE members than default (meaning CMS just saved them)
+        const cachedBoard = localStorage.getItem("nexus_board_members");
+        if (cachedBoard) {
+          const parsed = JSON.parse(cachedBoard);
+          if (parsed?.length > defaultBoardMembers.length) setBoardMembers(parsed);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    window.addEventListener("nexus_content_updated", applyCmsOverrides);
     return () => {
-      window.removeEventListener("nexus_content_updated", loadContent);
-      window.removeEventListener("storage", loadContent);
+      window.removeEventListener("nexus_content_updated", applyCmsOverrides);
     };
   }, []);
 
@@ -358,7 +376,7 @@ export default function HomePage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f8f9fb] text-[#0c2d49]">
+    <main className="min-h-screen overflow-x-hidden bg-[#f8f9fb] text-[#0c2d49]">
       {/* Top Banner */}
       <div className="bg-[#092945] px-6 py-2 text-center text-[11px] font-medium tracking-[.12em] text-white/75">
         {content.top_bar_text}
@@ -409,18 +427,18 @@ export default function HomePage() {
           </button>
 
           {menuOpen && (
-            <div className="absolute left-0 right-0 top-[76px] border-t bg-white p-6 shadow-xl lg:hidden">
-              <div className="flex flex-col gap-5 text-sm font-semibold">
-                <button onClick={() => go("about")} className="text-left">About</button>
-                <button onClick={() => go("projects")} className="text-left">Projects</button>
-                <button onClick={() => go("board")} className="text-left">Board</button>
-                <button onClick={() => go("gallery")} className="text-left">Gallery</button>
-                <button onClick={() => go("stories")} className="text-left">Stories</button>
-                <button onClick={() => go("contact")} className="text-left">Contact</button>
+            <div className="fixed inset-x-0 top-[76px] z-50 max-h-[calc(100vh-76px)] overflow-y-auto border-b border-[#0c2d49]/10 bg-white p-6 shadow-2xl lg:hidden">
+              <div className="flex flex-col gap-5 text-sm font-semibold text-[#092945]">
+                <button onClick={() => go("about")} className="text-left py-1 hover:text-[#bc8140]">About</button>
+                <button onClick={() => go("projects")} className="text-left py-1 hover:text-[#bc8140]">Projects</button>
+                <button onClick={() => go("board")} className="text-left py-1 hover:text-[#bc8140]">Board</button>
+                <button onClick={() => go("gallery")} className="text-left py-1 hover:text-[#bc8140]">Gallery</button>
+                <button onClick={() => go("stories")} className="text-left py-1 hover:text-[#bc8140]">Stories</button>
+                <button onClick={() => go("contact")} className="text-left py-1 hover:text-[#bc8140]">Contact</button>
                 <div className="pt-3 border-t">
                   <button
                     onClick={() => { setMenuOpen(false); openInquiryModal(); }}
-                    className="w-full rounded-md bg-[#bc8140] py-3 text-center text-xs font-bold text-white"
+                    className="w-full rounded-md bg-[#bc8140] py-3 text-center text-xs font-bold text-white shadow-sm"
                   >
                     Book a visit
                   </button>
@@ -433,19 +451,19 @@ export default function HomePage() {
 
       {/* Hero Section */}
       <section id="top" className="relative overflow-hidden bg-[#092945]">
-        <div className="mx-auto grid min-h-[650px] max-w-7xl items-center gap-10 px-6 py-16 lg:grid-cols-[.92fr_1.08fr] lg:px-10 lg:py-24">
+        <div className="mx-auto grid max-w-7xl items-center gap-10 px-5 py-14 sm:px-6 sm:py-16 lg:grid-cols-[.92fr_1.08fr] lg:px-10 lg:py-24">
           <div className="relative z-10">
-            <p className="mb-6 flex items-center gap-2 text-xs font-bold uppercase tracking-[.25em] text-[#d7a263]">
-              <Sparkles size={15} /> {content.hero_eyebrow}
+            <p className="mb-5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.25em] text-[#d7a263] sm:text-xs">
+              <Sparkles size={14} /> {content.hero_eyebrow}
             </p>
-            <h1 className="font-serif text-5xl leading-[1.08] tracking-tight text-white sm:text-7xl">
+            <h1 className="font-serif text-4xl leading-[1.1] tracking-tight text-white sm:text-5xl lg:text-7xl">
               {content.hero_title}<br />
               <span className="italic text-[#d7a263]">{content.hero_title_accent}</span>
             </h1>
-            <p className="mt-7 max-w-lg text-base leading-7 text-white/70">
+            <p className="mt-5 text-sm leading-7 text-white/70 sm:text-base">
               {content.hero_description}
             </p>
-            <div className="mt-9 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <button
                 onClick={() => go("projects")}
                 className="rounded-md bg-[#c99554] px-6 py-4 text-sm font-bold text-white transition hover:bg-white hover:text-[#092945]"
@@ -461,7 +479,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="relative h-[450px] lg:h-[570px]">
+          <div className="relative h-[320px] sm:h-[420px] lg:h-[570px]">
             <div className="absolute inset-0 overflow-hidden rounded-lg shadow-2xl">
               <img
                 src={content.hero_image_url}
@@ -469,18 +487,18 @@ export default function HomePage() {
                 className="h-full w-full object-cover"
               />
             </div>
-            <div className="absolute -bottom-5 -left-4 flex w-60 items-center gap-4 rounded-lg bg-white p-4 shadow-2xl sm:left-5">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#f2e7d8] text-[#bc8140]">
-                <ShieldCheck size={21} />
+            <div className="absolute bottom-4 left-3 flex max-w-[180px] items-center gap-3 rounded-lg bg-white p-3 shadow-2xl sm:bottom-[-20px] sm:left-5 sm:max-w-[240px] sm:gap-4 sm:p-4">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#f2e7d8] text-[#bc8140] sm:h-11 sm:w-11">
+                <ShieldCheck size={18} />
               </span>
               <span>
-                <strong className="block font-serif text-2xl text-[#092945]">{content.hero_stat_number}</strong>
-                <small className="text-[10px] font-bold uppercase tracking-wider text-[#557084]">{content.hero_stat_label}</small>
+                <strong className="block font-serif text-xl text-[#092945] sm:text-2xl">{content.hero_stat_number}</strong>
+                <small className="text-[9px] font-bold uppercase tracking-wider text-[#557084] sm:text-[10px]">{content.hero_stat_label}</small>
               </span>
             </div>
-            <div className="absolute right-4 top-5 rounded-lg border border-white/25 bg-[#092945]/85 px-4 py-3 text-xs text-white backdrop-blur">
-              <span className="block text-[#d7a263]">{content.hero_featured_label}</span>
-              <strong className="mt-1 block">{content.hero_featured_title}</strong>
+            <div className="absolute right-3 top-4 rounded-lg border border-white/25 bg-[#092945]/85 px-3 py-2 text-xs text-white backdrop-blur sm:right-4 sm:top-5 sm:px-4 sm:py-3">
+              <span className="block text-[#d7a263] text-[10px] sm:text-xs">{content.hero_featured_label}</span>
+              <strong className="mt-1 block text-xs sm:text-sm">{content.hero_featured_title}</strong>
             </div>
           </div>
         </div>
@@ -530,7 +548,7 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {[...boardMembers].sort((a, b) => {
                 const aMD = a.designation.toLowerCase().includes("managing director") || a.designation.toLowerCase().includes("md");
                 const bMD = b.designation.toLowerCase().includes("managing director") || b.designation.toLowerCase().includes("md");
@@ -600,7 +618,7 @@ export default function HomePage() {
         </div>
 
         {/* Properties Grid */}
-        <div className="mt-8 grid gap-6 lg:grid-cols-3">
+        <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {visibleProperties.map((project) => (
             <article
               key={project.id}
@@ -655,7 +673,7 @@ export default function HomePage() {
               </h2>
             </div>
           </div>
-          <div className="mt-10 grid gap-4 sm:grid-cols-3">
+          <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {gallery.map((item) => (
               <div
                 key={item.id}
@@ -683,7 +701,7 @@ export default function HomePage() {
 
       {/* Journal / Stories Section */}
       <section id="stories" className="mx-auto max-w-7xl px-6 py-20 lg:px-10 lg:py-28">
-        <div className="grid gap-14 lg:grid-cols-[.85fr_1.15fr]">
+        <div className="grid gap-10 lg:grid-cols-[.85fr_1.15fr]">
           <div>
             <p className="mb-3 text-xs font-bold uppercase tracking-[.22em] text-[#bc8140]">
               {content.journal_eyebrow}
@@ -727,33 +745,33 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section className="bg-[#092945] px-6 py-20 text-white lg:px-10 lg:py-24">
+      {/* Testimonials */}
+      <section className="bg-[#092945] px-5 py-16 text-white sm:px-6 sm:py-20 lg:px-10 lg:py-24">
         <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1fr_1.1fr] lg:items-center">
           <div>
-            <Quote className="mb-5 text-[#d7a263]" size={34} />
-            <p className="font-serif text-3xl leading-tight sm:text-4xl">
-              “{testimonials[0]?.quote || content.testimonial_quote}”
+            <Quote className="mb-5 text-[#d7a263]" size={30} />
+            <p className="font-serif text-2xl leading-tight sm:text-3xl lg:text-4xl">
+              "{testimonials[0]?.quote || content.testimonial_quote}"
             </p>
-            <p className="mt-7 text-xs font-bold uppercase tracking-widest text-[#d7a263]">
+            <p className="mt-6 text-xs font-bold uppercase tracking-widest text-[#d7a263]">
               — {testimonials[0]?.customer_name || content.testimonial_author} {testimonials[0]?.customer_role ? `(${testimonials[0].customer_role})` : ""}
             </p>
           </div>
-          <div className="grid gap-5 sm:grid-cols-3">
-            <div className="border-l border-white/20 p-5">
-              <Home size={20} className="mb-8 text-[#d7a263]" />
-              <strong className="font-serif text-2xl">Clarity</strong>
-              <p className="mt-2 text-xs leading-5 text-white/60">At every milestone</p>
+          <div className="grid grid-cols-3 gap-3 sm:gap-5">
+            <div className="border-l border-white/20 p-3 sm:p-5">
+              <Home size={18} className="mb-4 text-[#d7a263] sm:mb-8" />
+              <strong className="font-serif text-xl sm:text-2xl">Clarity</strong>
+              <p className="mt-2 text-[10px] leading-5 text-white/60 sm:text-xs">At every milestone</p>
             </div>
-            <div className="border-l border-white/20 p-5">
-              <ShieldCheck size={20} className="mb-8 text-[#d7a263]" />
-              <strong className="font-serif text-2xl">Care</strong>
-              <p className="mt-2 text-xs leading-5 text-white/60">Long after handover</p>
+            <div className="border-l border-white/20 p-3 sm:p-5">
+              <ShieldCheck size={18} className="mb-4 text-[#d7a263] sm:mb-8" />
+              <strong className="font-serif text-xl sm:text-2xl">Care</strong>
+              <p className="mt-2 text-[10px] leading-5 text-white/60 sm:text-xs">Long after handover</p>
             </div>
-            <div className="border-l border-white/20 p-5">
-              <Building2 size={20} className="mb-8 text-[#d7a263]" />
-              <strong className="font-serif text-2xl">Value</strong>
-              <p className="mt-2 text-xs leading-5 text-white/60">Built to last</p>
+            <div className="border-l border-white/20 p-3 sm:p-5">
+              <Building2 size={18} className="mb-4 text-[#d7a263] sm:mb-8" />
+              <strong className="font-serif text-xl sm:text-2xl">Value</strong>
+              <p className="mt-2 text-[10px] leading-5 text-white/60 sm:text-xs">Built to last</p>
             </div>
           </div>
         </div>
@@ -791,7 +809,7 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="border-t border-[#0c2d49]/10 bg-white">
-        <div className="mx-auto grid max-w-7xl gap-10 px-6 py-12 lg:grid-cols-[1.4fr_1fr_1fr] lg:px-10">
+        <div className="mx-auto grid max-w-7xl gap-8 px-5 py-10 sm:px-6 sm:py-12 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr] lg:px-10">
           <div>
             <div className="flex items-center gap-3">
               <img

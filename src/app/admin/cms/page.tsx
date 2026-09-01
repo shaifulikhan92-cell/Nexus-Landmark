@@ -188,7 +188,32 @@ const defaultBoardMembers: BoardMember[] = [
     name: "Abdul Qaium (Reyad)",
     designation: "Managing Director",
     image_url: "/board-member.jpg",
-    bio: "Leading operations, strategic planning, and long-term project delivery across residential and commercial developments at Nexus Landmark."
+    bio: "Leading operations, strategic planning, and long-term project delivery across residential and commercial developments at Nexus Landmark.",
+    sort_order: 1
+  },
+  {
+    id: "bm-2",
+    name: "Shah Forhan Khan",
+    designation: "Chairman",
+    image_url: "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=800&q=85",
+    bio: "Our vision is to build more than that buildings; We aim to create lasting values, trust and happiness. With innovation, integrity and excellence.",
+    sort_order: 2
+  },
+  {
+    id: "bm-3",
+    name: "S.M.Anisur Rahman",
+    designation: "Vice Chairman",
+    image_url: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=800&q=85",
+    bio: "Guiding executive strategy, architectural direction, and strategic partnerships for Nexus Landmark properties.",
+    sort_order: 3
+  },
+  {
+    id: "bm-4",
+    name: "Tanvir Hasan",
+    designation: "Director, Operations",
+    image_url: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=800&q=85",
+    bio: "Overseeing site execution, engineering safety compliance, customer relations, and corporate governance.",
+    sort_order: 4
   }
 ];
 
