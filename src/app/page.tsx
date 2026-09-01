@@ -293,9 +293,14 @@ export default function HomePage() {
         // Keep the complete public board visible while an older Supabase
         // database is being brought up to date with the four default members.
         const publicBoardMembers = boardRes.data ?? [];
-        if (publicBoardMembers.length >= defaultBoardMembers.length) {
+        const expectedBoardNames = new Set(defaultBoardMembers.map((member) => member.name));
+        const hasExpectedBoard = publicBoardMembers.length === defaultBoardMembers.length &&
+          publicBoardMembers.every((member) => expectedBoardNames.has(member.name));
+        if (hasExpectedBoard) {
           setBoardMembers(publicBoardMembers);
         } else {
+          // Do not let stale/different Supabase seed data replace the board
+          // configured for this site on devices without localStorage data.
           setBoardMembers(defaultBoardMembers);
         }
       }).catch(console.error);
