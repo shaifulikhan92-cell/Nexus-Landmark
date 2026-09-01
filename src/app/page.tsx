@@ -292,7 +292,9 @@ export default function HomePage() {
         if (servRes.data?.length) setServices(servRes.data);
         // Supabase is the shared source of truth, so every device receives
         // the same board records managed in the CMS.
-        const publicBoardMembers = boardRes.data ?? [];
+        const publicBoardMembers = (boardRes.data ?? []).filter((member, index, members) =>
+          index === members.findIndex((candidate) => candidate.name === member.name)
+        );
         if (publicBoardMembers.length > 0) {
           setBoardMembers(publicBoardMembers);
         }
