@@ -291,6 +291,20 @@ export default function CmsPage() {
         if (cachedBoard) {
           const parsed = JSON.parse(cachedBoard);
           if (parsed?.length) setBoardMembers(parsed);
+          // Promote the desktop CMS cache to the shared database so the
+          // exact names, bios, and uploaded photos reach other devices.
+          if (supabase && Array.isArray(parsed) && parsed.length) {
+            void Promise.all(parsed.slice(0, 4).map((member: BoardMember, index: number) =>
+              supabase.from("board_members").update({
+                name: member.name,
+                designation: member.designation,
+                image_url: member.image_url || null,
+                bio: member.bio || null,
+                sort_order: index + 1,
+                published: true
+              }).eq("sort_order", index + 1)
+            ));
+          }
         }
       } catch (e) {
         console.error(e);
