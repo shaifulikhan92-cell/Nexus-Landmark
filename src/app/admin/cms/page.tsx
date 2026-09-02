@@ -209,10 +209,10 @@ const defaultBoardMembers: BoardMember[] = [
   },
   {
     id: "bm-4",
-    name: "Tanvir Hasan",
-    designation: "Director, Operations",
-    image_url: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=800&q=85",
-    bio: "Overseeing site execution, engineering safety compliance, customer relations, and corporate governance.",
+    name: "Sayed Hasan (Rasel)",
+    designation: "Director",
+    image_url: "/board-member.jpg",
+    bio: "",
     sort_order: 4
   }
 ];
