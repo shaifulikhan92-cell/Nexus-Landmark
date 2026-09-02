@@ -291,20 +291,25 @@ export default function CmsPage() {
         if (cachedBoard) {
           const parsed = JSON.parse(cachedBoard);
           if (parsed?.length) setBoardMembers(parsed);
-          // Promote the desktop CMS cache to the shared database so the
-          // exact names, bios, and uploaded photos reach other devices.
+          // Promote cached CMS edits to the shared database. Match records by
+          // their database id whenever possible; sort_order is mutable and can
+          // point at a different member after a reorder.
           const sharedClient = supabase;
           if (sharedClient && Array.isArray(parsed) && parsed.length) {
-            void Promise.all(parsed.slice(0, 4).map((member: BoardMember, index: number) =>
-              sharedClient.from("board_members").update({
+            void Promise.all(parsed.slice(0, 4).map(async (member: BoardMember, index: number) => {
+              const payload = {
                 name: member.name,
                 designation: member.designation,
                 image_url: member.image_url || null,
                 bio: member.bio || null,
                 sort_order: index + 1,
                 published: true
-              }).eq("sort_order", index + 1)
-            ));
+              };
+              const result = member.id
+                ? await sharedClient.from("board_members").update(payload).eq("id", member.id)
+                : await sharedClient.from("board_members").update(payload).eq("sort_order", index + 1);
+              if (result.error) console.error("Board cache sync error:", result.error);
+            }));
           }
         }
       } catch (e) {
