@@ -195,7 +195,7 @@ const defaultBoardMembers: BoardMember[] = [
     id: "bm-2",
     name: "Shah Forhan Khan",
     designation: "Chairman",
-    image_url: "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=800&q=85",
+    image_url: "/chairman-shah-forhan-khan.png",
     bio: "Our vision is to build more than that buildings; We aim to create lasting values, trust and happiness. With innovation, integrity and excellence.",
     sort_order: 2
   },
@@ -203,7 +203,7 @@ const defaultBoardMembers: BoardMember[] = [
     id: "bm-3",
     name: "S.M.Anisur Rahman",
     designation: "Vice Chairman",
-    image_url: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=800&q=85",
+    image_url: "/vice-chairman-anisur-rahman.jpeg",
     bio: "Guiding executive strategy, architectural direction, and strategic partnerships for Nexus Landmark properties.",
     sort_order: 3
   },
