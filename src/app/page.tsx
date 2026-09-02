@@ -280,9 +280,8 @@ export default function HomePage() {
         supabase.from("properties").select("*").order("created_at", { ascending: false }),
         supabase.from("gallery_items").select("*").order("sort_order"),
         supabase.from("testimonials").select("*").eq("published", true).order("created_at", { ascending: false }),
-        supabase.from("services").select("*").eq("published", true).order("sort_order"),
-        supabase.from("board_members").select("*").eq("published", true).order("sort_order")
-      ]).then(([contentRes, propRes, galleryRes, testRes, servRes, boardRes]) => {
+        supabase.from("services").select("*").eq("published", true).order("sort_order")
+      ]).then(([contentRes, propRes, galleryRes, testRes, servRes]) => {
         if (contentRes.data?.content) {
           setContent((prev) => ({ ...prev, ...(contentRes.data!.content as Partial<SiteContent>) }));
         }
@@ -290,22 +289,16 @@ export default function HomePage() {
         if (galleryRes.data?.length) setGallery(galleryRes.data);
         if (testRes.data?.length) setTestimonials(testRes.data);
         if (servRes.data?.length) setServices(servRes.data);
-        // Supabase is the shared source of truth, so every device receives
-        // the same board records managed in the CMS.
-        const publicBoardMembers = (boardRes.data ?? []).reduce<BoardMember[]>((unique, member) => {
-          const existingIndex = unique.findIndex((candidate) => candidate.name === member.name);
-          if (existingIndex === -1) {
-            unique.push(member);
-          } else if (!unique[existingIndex].image_url && member.image_url) {
-            // Prefer the duplicate record that contains the uploaded photo.
-            unique[existingIndex] = member;
-          }
-          return unique;
-        }, []);
-        if (publicBoardMembers.length > 0) {
-          setBoardMembers(publicBoardMembers);
-        }
       }).catch(console.error);
+
+      // Keep the board request independent: a problem in another CMS section
+      // must not make the public page fall back to stale/default board data.
+      supabase.from("board_members").select("*").eq("published", true).order("sort_order")
+        .then(({ data, error }) => {
+          if (error) throw error;
+          if (data?.length) setBoardMembers(data as BoardMember[]);
+        })
+        .catch(console.error);
     }
 
     // 2. Also apply any CMS live-edit overrides from localStorage (desktop admin real-time sync only)
