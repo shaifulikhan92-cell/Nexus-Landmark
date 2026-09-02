@@ -295,10 +295,12 @@ export default function HomePage() {
       // must not make the public page fall back to stale/default board data.
       supabase.from("board_members").select("*").eq("published", true).order("sort_order")
         .then(({ data, error }) => {
-          if (error) throw error;
+          if (error) {
+            console.error("Board members load error:", error);
+            return;
+          }
           if (data?.length) setBoardMembers(data as BoardMember[]);
-        })
-        .catch(console.error);
+        }, console.error);
     }
 
     // 2. Also apply any CMS live-edit overrides from localStorage (desktop admin real-time sync only)
