@@ -240,7 +240,7 @@ const defaultBoardMembers: BoardMember[] = [
     id: "bm-4",
     name: "Sayed Hasan (Rasel)",
     designation: "Director",
-    image_url: "/board-member.jpg",
+    image_url: "/sayed-hasan.jpg",
     bio: "",
     sort_order: 4
   }
