@@ -321,13 +321,9 @@ export default function HomePage() {
         if (cachedTestimonials) { const t = JSON.parse(cachedTestimonials); if (t?.length) setTestimonials(t); }
         const cachedServices = localStorage.getItem("nexus_services");
         if (cachedServices) { const s = JSON.parse(cachedServices); if (s?.length) setServices(s); }
-        // Apply the CMS cache immediately so the public page reflects edits made
-        // in the admin panel while the shared database request is in flight.
-        const cachedBoard = localStorage.getItem("nexus_board_members");
-        if (cachedBoard) {
-          const parsed = JSON.parse(cachedBoard);
-          if (Array.isArray(parsed) && parsed.length > 0) setBoardMembers(parsed);
-        }
+        // Board members deliberately do not use localStorage. The CMS cache is
+        // device-specific and can contain stale photos; Supabase is the shared
+        // source of truth for this section.
       } catch (e) {
         console.error(e);
       }
