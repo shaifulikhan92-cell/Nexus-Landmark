@@ -287,21 +287,28 @@ export default function AdminDashboard() {
 
   async function handleFileUpload(file: File, callback: (url: string) => void) {
     setIsUploading(true);
-    if (supabase) {
-      const path = `uploads/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "-")}`;
-      const { error } = await supabase.storage.from("site-assets").upload(path, file, { upsert: true });
-      if (!error) {
-        const { data } = supabase.storage.from("site-assets").getPublicUrl(path);
-        callback(data.publicUrl);
-        setIsUploading(false);
-        notify("Image uploaded!");
-        return;
-      }
+    if (!supabase) {
+      setIsUploading(false);
+      notify("Server is not connected. Image was not saved.");
+      return;
     }
-    const localUrl = URL.createObjectURL(file);
-    callback(localUrl);
-    setIsUploading(false);
-    notify("Image uploaded (preview ready)");
+    try {
+      const path = `uploads/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "-")}`;
+      const { error } = await supabase.storage.from("site-assets").upload(path, file, {
+        upsert: false,
+        cacheControl: "31536000",
+        contentType: file.type
+      });
+      if (error) throw error;
+      const { data } = supabase.storage.from("site-assets").getPublicUrl(path);
+      callback(data.publicUrl);
+      notify("Image uploaded to the server.");
+    } catch (error) {
+      console.error("Storage upload error:", error);
+      notify(`Server upload failed: ${error instanceof Error ? error.message : "check admin permissions"}`);
+    } finally {
+      setIsUploading(false);
+    }
   }
 
   async function saveSiteContent() {
@@ -318,10 +325,14 @@ export default function AdminDashboard() {
       notify("Title and Location are required.");
       return;
     }
-    let item: Property = { ...newProp, id: `prop-${Date.now()}` };
-    if (supabase) {
-      const { data } = await supabase.from("properties").insert(newProp).select().single();
-      if (data) item = data;
+    if (!supabase) {
+      notify("Server is not connected. Property was not saved.");
+      return;
+    }
+    const { data: item, error } = await supabase.from("properties").insert(newProp).select().single();
+    if (error || !item) {
+      notify(`Property was not saved: ${error?.message || "server error"}`);
+      return;
     }
     savePropsLocal([item, ...properties]);
     setNewProp({ title: "", location: "", description: "", property_type: "Residential", status: "Upcoming", size: "", price: "", image_url: "" });
@@ -330,7 +341,15 @@ export default function AdminDashboard() {
 
   async function updatePropertySave() {
     if (!editProperty) return;
-    if (supabase) await supabase.from("properties").update(editProperty).eq("id", editProperty.id);
+    if (!supabase) {
+      notify("Server is not connected. Property was not saved.");
+      return;
+    }
+    const { error } = await supabase.from("properties").update(editProperty).eq("id", editProperty.id);
+    if (error) {
+      notify(`Property was not saved: ${error.message}`);
+      return;
+    }
     savePropsLocal(properties.map((p) => (p.id === editProperty.id ? editProperty : p)));
     setEditProperty(null);
     notify("Property updated!");
