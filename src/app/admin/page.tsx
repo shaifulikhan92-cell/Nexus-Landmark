@@ -325,6 +325,10 @@ export default function AdminDashboard() {
       notify("Title and Location are required.");
       return;
     }
+    if (newProp.image_url.startsWith("blob:")) {
+      notify("Please upload the image again; browser-only images cannot be saved.");
+      return;
+    }
     if (!supabase) {
       notify("Server is not connected. Property was not saved.");
       return;
@@ -341,6 +345,10 @@ export default function AdminDashboard() {
 
   async function updatePropertySave() {
     if (!editProperty) return;
+    if (editProperty.image_url.startsWith("blob:")) {
+      notify("Please upload the image again; browser-only images cannot be saved.");
+      return;
+    }
     if (!supabase) {
       notify("Server is not connected. Property was not saved.");
       return;
