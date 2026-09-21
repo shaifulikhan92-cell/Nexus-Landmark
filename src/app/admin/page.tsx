@@ -144,6 +144,10 @@ const defaultProperties: Property[] = [
 
 export default function AdminDashboard() {
   const router = useRouter();
+
+  useEffect(() => {
+    router.replace("/admin/cms");
+  }, [router]);
   const [section, setSection] = useState<string>("Overview");
   const [menuOpen, setMenuOpen] = useState(false);
   const [message, setMessage] = useState("");

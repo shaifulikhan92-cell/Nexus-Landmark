@@ -303,32 +303,6 @@ export default function HomePage() {
         }, console.error);
     }
 
-    // 2. Also apply any CMS live-edit overrides from localStorage (desktop admin real-time sync only)
-    const applyCmsOverrides = () => {
-      try {
-        const cachedContent = localStorage.getItem("nexus_site_content");
-        if (cachedContent) setContent((prev) => ({ ...prev, ...JSON.parse(cachedContent) }));
-        const cachedProps = localStorage.getItem("nexus_properties");
-        if (cachedProps) { const p = JSON.parse(cachedProps); if (p?.length) setProperties(p); }
-        const cachedGallery = localStorage.getItem("nexus_gallery");
-        if (cachedGallery) { const g = JSON.parse(cachedGallery); if (g?.length) setGallery(g); }
-        const cachedTestimonials = localStorage.getItem("nexus_testimonials");
-        if (cachedTestimonials) { const t = JSON.parse(cachedTestimonials); if (t?.length) setTestimonials(t); }
-        const cachedServices = localStorage.getItem("nexus_services");
-        if (cachedServices) { const s = JSON.parse(cachedServices); if (s?.length) setServices(s); }
-        // Board members deliberately do not use localStorage. The CMS cache is
-        // device-specific and can contain stale photos; Supabase is the shared
-        // source of truth for this section.
-      } catch (e) {
-        console.error(e);
-      }
-    };
-
-    applyCmsOverrides();
-    window.addEventListener("nexus_content_updated", applyCmsOverrides);
-    return () => {
-      window.removeEventListener("nexus_content_updated", applyCmsOverrides);
-    };
   }, []);
 
   const visibleProperties = filter === "All projects"

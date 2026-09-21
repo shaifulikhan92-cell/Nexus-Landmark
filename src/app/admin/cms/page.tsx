@@ -294,23 +294,9 @@ export default function CmsPage() {
           return;
         }
       }
-      // 1. Initial load from localStorage cache
-      try {
-        const cachedProps = supabase ? null : localStorage.getItem("nexus_properties");
-        if (cachedProps) setProjects(JSON.parse(cachedProps));
-        const cachedGallery = supabase ? null : localStorage.getItem("nexus_gallery");
-        if (cachedGallery) setGallery(JSON.parse(cachedGallery));
-        const cachedTestimonials = supabase ? null : localStorage.getItem("nexus_testimonials");
-        if (cachedTestimonials) setTestimonials(JSON.parse(cachedTestimonials));
-        const cachedServices = supabase ? null : localStorage.getItem("nexus_services");
-        if (cachedServices) setServices(JSON.parse(cachedServices));
-      } catch (e) {
-        console.error(e);
-      }
-
       if (!supabase) return;
 
-      // 2. Load from Supabase
+      // Load every CMS section from Supabase; the server is the source of truth.
       try {
         const [cRes, pRes, gRes, tRes, sRes, bRes, iRes] = await Promise.all([
           supabase.from("site_content").select("content").eq("id", "homepage").maybeSingle(),
@@ -392,22 +378,28 @@ export default function CmsPage() {
       notify("Title and Location are required.");
       return;
     }
-    if (supabase) {
-      const { data } = await supabase.from("properties").insert(newProp).select().single();
-      if (data) setProjects([data, ...properties]);
-    } else {
-      const item: Property = { ...newProp, id: `demo-${Date.now()}` };
-      setProjects([item, ...properties]);
+    if (!supabase) {
+      notify("Server is not connected. Property was not saved.");
+      return;
     }
+    const { data, error } = await supabase.from("properties").insert(newProp).select().single();
+    if (error || !data) {
+      notify(`Property was not saved: ${error?.message || "server error"}`);
+      return;
+    }
+    setProjects([data, ...properties]);
     setNewProp({ title: "", location: "", description: "", property_type: "Residential", status: "Upcoming", size: "", price: "", image_url: "" });
     notify("Property added successfully!");
   }
 
   async function updatePropertySave() {
     if (!editProperty) return;
-    if (supabase) {
-      await supabase.from("properties").update(editProperty).eq("id", editProperty.id);
+    if (!supabase) {
+      notify("Server is not connected. Property was not saved.");
+      return;
     }
+    const { error } = await supabase.from("properties").update(editProperty).eq("id", editProperty.id);
+    if (error) { notify(`Property was not saved: ${error.message}`); return; }
     setProjects(properties.map((p) => (p.id === editProperty.id ? editProperty : p)));
     setEditProperty(null);
     notify("Property updated!");
@@ -415,7 +407,9 @@ export default function CmsPage() {
 
   async function deleteProperty(id: string) {
     if (!window.confirm("Are you sure you want to delete this property?")) return;
-    if (supabase) await supabase.from("properties").delete().eq("id", id);
+    if (!supabase) { notify("Server is not connected. Property was not deleted."); return; }
+    const { error } = await supabase.from("properties").delete().eq("id", id);
+    if (error) { notify(`Property was not deleted: ${error.message}`); return; }
     setProjects(properties.filter((p) => p.id !== id));
     notify("Property deleted.");
   }
@@ -426,19 +420,22 @@ export default function CmsPage() {
       notify("Title and Image URL are required.");
       return;
     }
-    if (supabase) {
-      const { data } = await supabase.from("gallery_items").insert(newGallery).select().single();
-      if (data) setGallery([...gallery, data]);
-    } else {
-      setGallery([...gallery, { ...newGallery, id: `gdemo-${Date.now()}` }]);
+    if (!supabase) { notify("Server is not connected. Gallery item was not saved."); return; }
+    const { data, error } = await supabase.from("gallery_items").insert(newGallery).select().single();
+    if (error || !data) {
+      notify(`Gallery item was not saved: ${error?.message || "server error"}`);
+      return;
     }
+    setGallery([...gallery, data]);
     setNewGallery({ label: "Exterior", title: "", image_url: "" });
     notify("Gallery item added!");
   }
 
   async function updateGallerySave() {
     if (!editGallery) return;
-    if (supabase) await supabase.from("gallery_items").update(editGallery).eq("id", editGallery.id);
+    if (!supabase) { notify("Server is not connected. Gallery item was not saved."); return; }
+    const { error } = await supabase.from("gallery_items").update(editGallery).eq("id", editGallery.id);
+    if (error) { notify(`Gallery item was not saved: ${error.message}`); return; }
     setGallery(gallery.map((g) => (g.id === editGallery.id ? editGallery : g)));
     setEditGallery(null);
     notify("Gallery item updated!");
@@ -446,7 +443,9 @@ export default function CmsPage() {
 
   async function deleteGalleryItem(id: string) {
     if (!window.confirm("Delete gallery item?")) return;
-    if (supabase) await supabase.from("gallery_items").delete().eq("id", id);
+    if (!supabase) { notify("Server is not connected. Gallery item was not deleted."); return; }
+    const { error } = await supabase.from("gallery_items").delete().eq("id", id);
+    if (error) { notify(`Gallery item was not deleted: ${error.message}`); return; }
     setGallery(gallery.filter((g) => g.id !== id));
     notify("Gallery item deleted.");
   }
@@ -457,19 +456,19 @@ export default function CmsPage() {
       notify("Quote and Customer Name are required.");
       return;
     }
-    if (supabase) {
-      const { data } = await supabase.from("testimonials").insert({ ...newTestimonial, published: true }).select().single();
-      if (data) setTestimonials([data, ...testimonials]);
-    } else {
-      setTestimonials([{ ...newTestimonial, id: `tdemo-${Date.now()}`, published: true }, ...testimonials]);
-    }
+    if (!supabase) { notify("Server is not connected. Testimonial was not saved."); return; }
+    const { data, error } = await supabase.from("testimonials").insert({ ...newTestimonial, published: true }).select().single();
+    if (error || !data) { notify(`Testimonial was not saved: ${error?.message || "server error"}`); return; }
+    setTestimonials([data, ...testimonials]);
     setNewTestimonial({ quote: "", customer_name: "", customer_role: "" });
     notify("Testimonial added!");
   }
 
   async function updateTestimonialSave() {
     if (!editTestimonial) return;
-    if (supabase) await supabase.from("testimonials").update(editTestimonial).eq("id", editTestimonial.id);
+    if (!supabase) { notify("Server is not connected. Testimonial was not saved."); return; }
+    const { error } = await supabase.from("testimonials").update(editTestimonial).eq("id", editTestimonial.id);
+    if (error) { notify(`Testimonial was not saved: ${error.message}`); return; }
     setTestimonials(testimonials.map((t) => (t.id === editTestimonial.id ? editTestimonial : t)));
     setEditTestimonial(null);
     notify("Testimonial updated!");
@@ -477,7 +476,9 @@ export default function CmsPage() {
 
   async function deleteTestimonialItem(id: string) {
     if (!window.confirm("Delete testimonial?")) return;
-    if (supabase) await supabase.from("testimonials").delete().eq("id", id);
+    if (!supabase) { notify("Server is not connected. Testimonial was not deleted."); return; }
+    const { error } = await supabase.from("testimonials").delete().eq("id", id);
+    if (error) { notify(`Testimonial was not deleted: ${error.message}`); return; }
     setTestimonials(testimonials.filter((t) => t.id !== id));
     notify("Testimonial deleted.");
   }
@@ -488,19 +489,19 @@ export default function CmsPage() {
       notify("Title and Description are required.");
       return;
     }
-    if (supabase) {
-      const { data } = await supabase.from("services").insert({ ...newService, published: true }).select().single();
-      if (data) setServices([...services, data]);
-    } else {
-      setServices([...services, { ...newService, id: `sdemo-${Date.now()}`, published: true }]);
-    }
+    if (!supabase) { notify("Server is not connected. Service story was not saved."); return; }
+    const { data, error } = await supabase.from("services").insert({ ...newService, published: true }).select().single();
+    if (error || !data) { notify(`Service story was not saved: ${error?.message || "server error"}`); return; }
+    setServices([...services, data]);
     setNewService({ title: "", description: "", icon: "", image_url: "" });
     notify("Service story added!");
   }
 
   async function updateServiceSave() {
     if (!editService) return;
-    if (supabase) await supabase.from("services").update(editService).eq("id", editService.id);
+    if (!supabase) { notify("Server is not connected. Service story was not saved."); return; }
+    const { error } = await supabase.from("services").update(editService).eq("id", editService.id);
+    if (error) { notify(`Service story was not saved: ${error.message}`); return; }
     setServices(services.map((s) => (s.id === editService.id ? editService : s)));
     setEditService(null);
     notify("Service story updated!");
@@ -508,7 +509,9 @@ export default function CmsPage() {
 
   async function deleteServiceItem(id: string) {
     if (!window.confirm("Delete story?")) return;
-    if (supabase) await supabase.from("services").delete().eq("id", id);
+    if (!supabase) { notify("Server is not connected. Service story was not deleted."); return; }
+    const { error } = await supabase.from("services").delete().eq("id", id);
+    if (error) { notify(`Service story was not deleted: ${error.message}`); return; }
     setServices(services.filter((s) => s.id !== id));
     notify("Service story deleted.");
   }
@@ -610,14 +613,18 @@ export default function CmsPage() {
 
   // --- Inquiries Status Update ---
   async function updateInquiryStatus(id: string, status: Inquiry["status"]) {
-    if (supabase) await supabase.from("inquiries").update({ status }).eq("id", id);
+    if (!supabase) { notify("Server is not connected. Inquiry was not updated."); return; }
+    const { error } = await supabase.from("inquiries").update({ status }).eq("id", id);
+    if (error) { notify(`Inquiry was not updated: ${error.message}`); return; }
     setInquiries(inquiries.map((i) => (i.id === id ? { ...i, status } : i)));
     notify(`Inquiry status updated to ${status}`);
   }
 
   async function deleteInquiryItem(id: string) {
     if (!window.confirm("Delete inquiry lead?")) return;
-    if (supabase) await supabase.from("inquiries").delete().eq("id", id);
+    if (!supabase) { notify("Server is not connected. Inquiry was not deleted."); return; }
+    const { error } = await supabase.from("inquiries").delete().eq("id", id);
+    if (error) { notify(`Inquiry was not deleted: ${error.message}`); return; }
     setInquiries(inquiries.filter((i) => i.id !== id));
     notify("Inquiry lead deleted.");
   }
