@@ -560,11 +560,11 @@ export default function HomePage() {
                   key={member.id}
                   className="group overflow-hidden rounded-xl border border-[#0c2d49]/10 bg-[#f8f9fb] shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
                 >
-                  <div className="relative h-80 overflow-hidden bg-gray-100">
+                  <div className="relative flex h-80 items-center justify-center overflow-hidden bg-gray-100">
                     <img
                       src={member.image_url || "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=800&q=85"}
                       alt={member.name}
-                      className="h-full w-full object-cover object-top transition duration-700 group-hover:scale-105"
+                      className="max-h-full max-w-full object-contain transition duration-700 group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#092945]/80 via-transparent to-transparent opacity-60 transition group-hover:opacity-80" />
                     <div className="absolute bottom-4 left-4 right-4">
