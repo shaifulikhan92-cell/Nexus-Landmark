@@ -156,7 +156,7 @@ insert into public.properties (title, location, description, property_type, stat
 values
 ('Nexus Parkview', 'Gulshan, Dhaka', 'A calm, contemporary family residence shaped around light, space, and everyday ease.', 'Residential', 'Ongoing', '1,850–2,450 sft', 'On request', 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=85'),
 ('Landmark One', 'Banani, Dhaka', 'A confident commercial address for ambitious businesses, retail, and lifestyle brands.', 'Commercial', 'Upcoming', '1,200–8,000 sft', 'On request', 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=85'),
-('The Grove Residences', 'Uttara, Dhaka', 'Thoughtful apartments with green views, practical planning, and a warm sense of home.', 'Residential', 'Completed', '1,450–1,900 sft', 'On request', 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1200&q=85')
+('Darul Qarar', 'East Banasree', 'Thoughtful apartments with green views, practical planning, and a warm sense of home.', 'Residential', 'Completed', '1,450–1,900 sft', 'On request', '/nexus-landmark-project.jpg')
 on conflict do nothing;
 
 -- Seed Data: Site Content (Full A-Z frontend default content JSON)

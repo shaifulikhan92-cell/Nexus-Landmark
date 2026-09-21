@@ -155,14 +155,14 @@ const defaultProperties: Property[] = [
   },
   {
     id: "prop-3",
-    title: "The Grove Residences",
-    location: "Uttara, Dhaka",
+    title: "Darul Qarar",
+    location: "East Banasree",
     description: "Thoughtful apartments with green views, practical planning, and a warm sense of home.",
     property_type: "Residential",
     status: "Completed",
     size: "1,450–1,900 sft",
     price: "On request",
-    image_url: "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1200&q=85"
+    image_url: "/nexus-landmark-project.jpg"
   }
 ];
 
