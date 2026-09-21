@@ -708,7 +708,7 @@ export default function AdminDashboard() {
                   {properties.map((p) => (
                     <div key={p.id} className="flex items-center justify-between rounded-lg bg-[#f5f7f9] p-4 border border-[#0c2d49]/5">
                       <div className="flex items-center gap-3">
-                        {p.image_url && <img src={p.image_url} alt={p.title} className="h-12 w-12 rounded object-cover" />}
+                        {p.image_url && <img src={p.image_url.startsWith("blob:") ? defaultProperties.find((item) => item.title === p.title)?.image_url || defaultProperties[0].image_url : p.image_url} alt={p.title} className="h-12 w-12 rounded object-cover" />}
                         <div>
                           <strong className="text-sm font-serif">{p.title}</strong>
                           <p className="text-xs text-[#557084]">{p.location} · {p.property_type}</p>

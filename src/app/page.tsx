@@ -335,6 +335,11 @@ export default function HomePage() {
     ? properties
     : properties.filter((p) => p.status === filter);
 
+  const propertyImage = (project: Property) => {
+    if (project.image_url && !project.image_url.startsWith("blob:")) return project.image_url;
+    return defaultProperties.find((item) => item.title === project.title)?.image_url || defaultProperties[0].image_url;
+  };
+
   const go = (id: string) => {
     setMenuOpen(false);
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
@@ -626,9 +631,10 @@ export default function HomePage() {
             >
               <div className="relative h-64 overflow-hidden">
                 <img
-                  src={project.image_url || "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=85"}
+                  src={propertyImage(project)}
                   alt={project.title}
                   className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                  onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = defaultProperties[0].image_url; }}
                 />
                 <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#092945] shadow-sm">
                   {project.status}
