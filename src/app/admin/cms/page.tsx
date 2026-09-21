@@ -217,6 +217,16 @@ const defaultBoardMembers: BoardMember[] = [
   }
 ];
 
+function uniqueBoardMembers(members: BoardMember[]) {
+  const unique: BoardMember[] = [];
+  for (const member of members) {
+    const existingIndex = unique.findIndex((item) => item.name === member.name);
+    if (existingIndex === -1) unique.push(member);
+    else if (!unique[existingIndex].image_url && member.image_url) unique[existingIndex] = member;
+  }
+  return unique.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+}
+
 export default function CmsPage() {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("content");
@@ -277,41 +287,23 @@ export default function CmsPage() {
 
   useEffect(() => {
     async function loadData() {
+      if (supabase) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          router.replace("/admin/login");
+          return;
+        }
+      }
       // 1. Initial load from localStorage cache
       try {
-        const cachedProps = localStorage.getItem("nexus_properties");
+        const cachedProps = supabase ? null : localStorage.getItem("nexus_properties");
         if (cachedProps) setProjects(JSON.parse(cachedProps));
-        const cachedGallery = localStorage.getItem("nexus_gallery");
+        const cachedGallery = supabase ? null : localStorage.getItem("nexus_gallery");
         if (cachedGallery) setGallery(JSON.parse(cachedGallery));
-        const cachedTestimonials = localStorage.getItem("nexus_testimonials");
+        const cachedTestimonials = supabase ? null : localStorage.getItem("nexus_testimonials");
         if (cachedTestimonials) setTestimonials(JSON.parse(cachedTestimonials));
-        const cachedServices = localStorage.getItem("nexus_services");
+        const cachedServices = supabase ? null : localStorage.getItem("nexus_services");
         if (cachedServices) setServices(JSON.parse(cachedServices));
-        const cachedBoard = localStorage.getItem("nexus_board_members");
-        if (cachedBoard) {
-          const parsed = JSON.parse(cachedBoard);
-          if (parsed?.length) setBoardMembers(parsed);
-          // Promote cached CMS edits to the shared database. Match records by
-          // their database id whenever possible; sort_order is mutable and can
-          // point at a different member after a reorder.
-          const sharedClient = supabase;
-          if (sharedClient && Array.isArray(parsed) && parsed.length) {
-            void Promise.all(parsed.slice(0, 4).map(async (member: BoardMember, index: number) => {
-              const payload = {
-                name: member.name,
-                designation: member.designation,
-                image_url: member.image_url || null,
-                bio: member.bio || null,
-                sort_order: index + 1,
-                published: true
-              };
-              const result = member.id
-                ? await sharedClient.from("board_members").update(payload).eq("id", member.id)
-                : await sharedClient.from("board_members").update(payload).eq("sort_order", index + 1);
-              if (result.error) console.error("Board cache sync error:", result.error);
-            }));
-          }
-        }
       } catch (e) {
         console.error(e);
       }
@@ -336,7 +328,7 @@ export default function CmsPage() {
         if (gRes.data && gRes.data.length > 0) setGallery(gRes.data);
         if (tRes.data && tRes.data.length > 0) setTestimonials(tRes.data);
         if (sRes.data && sRes.data.length > 0) setServices(sRes.data);
-        if (bRes.data && bRes.data.length > 0) setBoardMembers(bRes.data);
+        if (bRes.data && bRes.data.length > 0) setBoardMembers(uniqueBoardMembers(bRes.data));
         if (iRes.data) setInquiries(iRes.data);
       } catch (err) {
         console.error("Supabase load error:", err);
@@ -353,57 +345,45 @@ export default function CmsPage() {
   // --- Image Upload Utility ---
   async function handleFileUpload(file: File, callback: (url: string) => void) {
     setIsUploading(true);
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const base64Url = e.target?.result as string;
-
-      if (supabase) {
-        try {
-          const path = `uploads/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "-")}`;
-          const { error } = await supabase.storage.from("site-assets").upload(path, file, { upsert: true });
-          if (!error) {
-            const { data } = supabase.storage.from("site-assets").getPublicUrl(path);
-            if (data?.publicUrl) {
-              callback(data.publicUrl);
-              setIsUploading(false);
-              notify("Image uploaded successfully!");
-              return;
-            }
-          }
-        } catch (err) {
-          console.error("Storage upload error:", err);
-        }
-      }
-
-      callback(base64Url);
+    if (!supabase) {
       setIsUploading(false);
-      notify("Image attached successfully!");
-    };
-    reader.onerror = () => {
+      notify("Server is not connected. Image was not saved.");
+      return;
+    }
+
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "-");
+      const path = `uploads/${Date.now()}-${safeName}`;
+      const { error } = await supabase.storage.from("site-assets").upload(path, file, {
+        upsert: false,
+        cacheControl: "31536000",
+        contentType: file.type
+      });
+      if (error) throw error;
+      const { data } = supabase.storage.from("site-assets").getPublicUrl(path);
+      if (!data.publicUrl) throw new Error("Storage did not return a public URL.");
+      callback(data.publicUrl);
+      notify("Image uploaded to the server.");
+    } catch (error) {
+      console.error("Storage upload error:", error);
+      notify(`Server upload failed: ${error instanceof Error ? error.message : "check admin permissions"}`);
+    } finally {
       setIsUploading(false);
-      notify("Failed to read image file.");
-    };
-    reader.readAsDataURL(file);
+    }
   }
 
   // --- Content Save ---
   async function saveSiteContent() {
-    try {
-      localStorage.setItem("nexus_site_content", JSON.stringify(content));
-      window.dispatchEvent(new Event("nexus_content_updated"));
-    } catch (e) {
-      console.error(e);
+    if (!supabase) {
+      notify("Server is not connected. Content was not saved.");
+      return;
     }
-    if (supabase) {
-      const { error } = await supabase.from("site_content").upsert({ id: "homepage", content, updated_at: new Date().toISOString() });
-      if (error) {
-        console.error("Supabase update error:", error);
-        notify("Saved locally! (Supabase notice: " + error.message + ")");
-        return;
-      }
+    const { error } = await supabase.from("site_content").upsert({ id: "homepage", content, updated_at: new Date().toISOString() });
+    if (error) {
+      notify(`Content was not saved: ${error.message}`);
+      return;
     }
-    notify("A-Z Website Content Saved Successfully!");
+    notify("A-Z website content saved to the server.");
   }
 
   // --- Property CRUD ---
@@ -539,33 +519,26 @@ export default function CmsPage() {
       notify("Name and Designation are required.");
       return;
     }
-    let newItem: BoardMember = {
-      ...newBoardMember,
-      id: `bm-${Date.now()}`,
-      published: true
-    };
-    if (supabase) {
-      try {
-        const { data, error } = await supabase
-          .from("board_members")
-          .insert({ ...newBoardMember, published: true })
-          .select()
-          .single();
-        if (data) newItem = data;
-        if (error) console.error("Supabase insert error:", error);
-      } catch (err) {
-        console.error("Supabase insert exception:", err);
-      }
+    if (!supabase) {
+      notify("Server is not connected. Board member was not saved.");
+      return;
+    }
+    const { data: newItem, error } = await supabase
+      .from("board_members")
+      .insert({ ...newBoardMember, published: true })
+      .select()
+      .single();
+    if (error || !newItem) {
+      notify(`Board member was not saved: ${error?.message || "server error"}`);
+      return;
     }
 
     const isMD = newBoardMember.designation.toLowerCase().includes("managing director") || newBoardMember.designation.toLowerCase().includes("md");
     const updated = isMD ? [newItem, ...boardMembers] : [...boardMembers, newItem];
     
     setBoardMembers(updated);
-    localStorage.setItem("nexus_board_members", JSON.stringify(updated));
-    window.dispatchEvent(new Event("nexus_content_updated"));
     setNewBoardMember({ name: "", designation: "", image_url: "", bio: "" });
-    notify("Board member added successfully!");
+    notify("Board member saved to the server.");
   }
 
   async function moveBoardMember(index: number, direction: "up" | "down") {
@@ -577,45 +550,62 @@ export default function CmsPage() {
     copy[index] = copy[targetIndex];
     copy[targetIndex] = temp;
 
-    const updated = copy.map((item, idx) => ({ ...item, sort_order: idx + 1 }));
-    setBoardMembers(updated);
-    localStorage.setItem("nexus_board_members", JSON.stringify(updated));
-    window.dispatchEvent(new Event("nexus_content_updated"));
-
-    const client = supabase;
-    if (client) {
-      try {
-        await Promise.all(
-          updated.map((item) =>
-            client.from("board_members").update({ sort_order: item.sort_order }).eq("id", item.id)
-          )
-        );
-      } catch (e) {
-        console.error(e);
-      }
+    if (!supabase) {
+      notify("Server is not connected. Board order was not saved.");
+      return;
     }
+    const client = supabase;
+    const updated = copy.map((item, idx) => ({ ...item, sort_order: idx + 1 }));
+    const results = await Promise.all(
+      updated.map((item) => client.from("board_members").update({ sort_order: item.sort_order }).eq("id", item.id))
+    );
+    const failed = results.find((result) => result.error);
+    if (failed?.error) {
+      notify(`Board order was not saved: ${failed.error.message}`);
+      return;
+    }
+    setBoardMembers(updated);
     notify("Board sequence updated!");
   }
 
   async function updateBoardMemberSave() {
     if (!editBoardMember) return;
-    if (supabase) await supabase.from("board_members").update(editBoardMember).eq("id", editBoardMember.id);
+    if (!supabase) {
+      notify("Server is not connected. Board member was not saved.");
+      return;
+    }
+    const { error } = await supabase.from("board_members").update({
+      name: editBoardMember.name,
+      designation: editBoardMember.designation,
+      image_url: editBoardMember.image_url || null,
+      bio: editBoardMember.bio || null,
+      sort_order: editBoardMember.sort_order ?? 0,
+      published: editBoardMember.published ?? true
+    }).eq("id", editBoardMember.id);
+    if (error) {
+      notify(`Board member was not saved: ${error.message}`);
+      return;
+    }
     const updated = boardMembers.map((b) => (b.id === editBoardMember.id ? editBoardMember : b));
     setBoardMembers(updated);
-    localStorage.setItem("nexus_board_members", JSON.stringify(updated));
-    window.dispatchEvent(new Event("nexus_content_updated"));
     setEditBoardMember(null);
-    notify("Board member updated!");
+    notify("Board member saved to the server.");
   }
 
   async function deleteBoardMember(id: string) {
     if (!window.confirm("Delete this board member?")) return;
-    if (supabase) await supabase.from("board_members").delete().eq("id", id);
+    if (!supabase) {
+      notify("Server is not connected. Board member was not deleted.");
+      return;
+    }
+    const { error } = await supabase.from("board_members").delete().eq("id", id);
+    if (error) {
+      notify(`Board member was not deleted: ${error.message}`);
+      return;
+    }
     const updated = boardMembers.filter((b) => b.id !== id);
     setBoardMembers(updated);
-    localStorage.setItem("nexus_board_members", JSON.stringify(updated));
-    window.dispatchEvent(new Event("nexus_content_updated"));
-    notify("Board member deleted.");
+    notify("Board member deleted from the server.");
   }
 
   // --- Inquiries Status Update ---
